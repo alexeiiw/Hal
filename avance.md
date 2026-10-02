@@ -40,3 +40,4 @@
 - [x] Corregida la deteccion de OpenCode para aceptar los nombres `OpenCode` y `OpenCode.exe`.
 - [x] Preparada la version `0.3.1`, el changelog y las reglas Git para publicar el codigo fuente.
 - [x] Compilados correctamente el ejecutable y los instaladores de HAL 0.3.1.
+- [x] Publicado el repositorio inicial de HAL 0.3.1 en GitHub.
