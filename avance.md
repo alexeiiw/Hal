@@ -48,4 +48,4 @@
 - [x] Actualizada la version a `0.4.1`, README y changelog.
 - [x] Superado el control de calidad de TypeScript, formato Rust y espacios Git.
 - [x] Compilados correctamente el ejecutable y los instaladores de HAL 0.4.1.
-- [ ] Pendiente: publicar HAL 0.4.1 en GitHub.
+- [x] Publicada la correccion HAL 0.4.1 en GitHub.
