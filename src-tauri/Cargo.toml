@@ -1,0 +1,13 @@
+[package]
+name = "hal"
+version = "0.3.1"
+description = "Indicador flotante de CPU"
+authors = ["HAL"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
+
+[dependencies]
+sysinfo = "0.33"
+tauri = { version = "2.0", features = [] }

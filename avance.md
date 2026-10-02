@@ -1,0 +1,42 @@
+# Avance de HAL
+
+## 2026-10-02
+
+- [x] Verificada la carpeta de trabajo: estaba vacia.
+- [x] Detectada la ausencia de Node.js, npm, Rust y Cargo en `PATH`.
+- [x] Creada la estructura base de Tauri 2 con Vite y TypeScript plano.
+- [x] Configurada la ventana transparente, sin decoraciones, siempre visible, fuera de la barra de tareas, de 160x120 y click-through.
+- [x] Implementado el monitor de CPU con `sysinfo` y el evento nativo `evento-cpu` cada segundo.
+- [x] Implementado el ecualizador de cinco barras con respuesta verde/roja segun CPU y animacion matematica aleatoria acotada.
+- [x] Revisados estaticamente los archivos de configuracion y codigo fuente.
+- [x] Instalados Node.js LTS, Rust, Cargo y Visual Studio Build Tools C++.
+- [x] Compilado correctamente el frontend con TypeScript y Vite.
+- [x] Ajustada la configuracion: Tauri 2 solo admite `ignoreCursorEvents` en tiempo de ejecucion, aplicado en `main.rs`.
+- [x] Identificado el recurso faltante del empaquetado: icono Windows de la aplicacion.
+- [x] Generados los formatos del icono, incluido `icons/icon.ico`.
+- [x] Compilado el ejecutable `src-tauri/target/release/hal.exe`.
+- [x] Declarado explicitamente el icono para el empaquetador MSI de Windows.
+- [x] Generados correctamente los instaladores MSI y NSIS para Windows x64.
+- [x] Configurado el ejecutable de produccion como aplicacion grafica para no mostrar una consola CMD.
+- [x] Configurado HAL para ubicarse abajo a la derecha del area util del monitor.
+- [x] Regenerados y verificados el ejecutable, instalador MSI e instalador NSIS.
+- [x] Corregida la toma de CPU para establecer una muestra base antes de emitir porcentajes.
+- [x] Regenerados el ejecutable y los instaladores con la correccion de lectura de CPU.
+- [x] Verificada la lectura directa de `sysinfo`: informa correctamente la CPU global.
+- [x] Añadido el permiso explicito de eventos para la ventana principal de Tauri.
+- [x] Regenerados el ejecutable y los instaladores con el permiso de eventos.
+- [x] Conservada la medicion global de CPU para el uso manual bajo demanda.
+- [x] Implementados decimales y estados visuales verde, azul y rojo.
+- [x] Creados README, politica de seguridad y `.gitignore` para preparar la publicacion en GitHub.
+- [x] Compilados correctamente el ejecutable y los instaladores con los cambios visuales y documentales.
+- [x] Detectado el nombre real del proceso de OpenCode: `OpenCode.exe`.
+- [x] Implementada la onda visual al ejecutar OpenCode sin sustituir la metrica global.
+- [x] Actualizada la version a `0.2.0` y la documentacion tecnica y de seguridad.
+- [x] Compilados correctamente el ejecutable y los instaladores de HAL 0.2.0.
+- [x] Implementada la CPU agregada de las instancias de `OpenCode.exe`.
+- [x] Separados el modo ecualizador global y el modo de senal ondulada de OpenCode.
+- [x] Actualizada la version a `0.3.0` y la documentacion de los dos modos.
+- [x] Compilados correctamente el ejecutable y los instaladores de HAL 0.3.0.
+- [x] Corregida la deteccion de OpenCode para aceptar los nombres `OpenCode` y `OpenCode.exe`.
+- [x] Preparada la version `0.3.1`, el changelog y las reglas Git para publicar el codigo fuente.
+- [x] Compilados correctamente el ejecutable y los instaladores de HAL 0.3.1.

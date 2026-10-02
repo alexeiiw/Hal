@@ -1,0 +1,66 @@
+:root {
+  color: #dcfce7;
+  font-family: "Segoe UI", sans-serif;
+  background: transparent;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#hal {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+#hal {
+  --bar-color: #22c55e;
+  --glow: rgba(34, 197, 94, 0.75);
+  display: grid;
+  place-items: center;
+  grid-template-rows: 78px 18px;
+  padding: 12px 22px;
+  transition: color 120ms ease;
+}
+
+.equalizer {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 70px;
+}
+
+.equalizer i {
+  width: 8px;
+  min-height: 8px;
+  border-radius: 8px;
+  background: var(--bar-color);
+  box-shadow: 0 0 8px var(--glow), 0 0 16px var(--glow);
+  transition: height var(--tempo, 460ms) ease-out, background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+#hal.overloaded {
+  --bar-color: #ef4444;
+  --glow: rgba(239, 68, 68, 0.8);
+  color: #fee2e2;
+}
+
+#hal.busy {
+  --bar-color: #3b82f6;
+  --glow: rgba(59, 130, 246, 0.8);
+  color: #dbeafe;
+}
+
+output {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.16em;
+  text-shadow: 0 0 8px currentColor;
+}
