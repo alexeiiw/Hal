@@ -27,6 +27,17 @@ body,
   transition: color 120ms ease;
 }
 
+.visualizer {
+  display: grid;
+  width: 100%;
+  height: 70px;
+}
+
+.equalizer,
+.signal {
+  grid-area: 1 / 1;
+}
+
 .equalizer {
   display: flex;
   align-items: end;
@@ -34,6 +45,8 @@ body,
   gap: 8px;
   width: 100%;
   height: 70px;
+  opacity: 1;
+  transition: opacity 140ms ease;
 }
 
 .equalizer i {
@@ -44,6 +57,29 @@ body,
   box-shadow: 0 0 8px var(--glow), 0 0 16px var(--glow);
   transition: height var(--tempo, 460ms) ease-out, background-color 120ms ease,
     box-shadow 120ms ease;
+}
+
+.signal {
+  width: 100%;
+  height: 70px;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.signal path {
+  fill: none;
+  stroke: var(--bar-color);
+  stroke-linecap: round;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 4px var(--glow)) drop-shadow(0 0 8px var(--glow));
+}
+
+#hal.opencode-active .equalizer {
+  opacity: 0;
+}
+
+#hal.opencode-active .signal {
+  opacity: 1;
 }
 
 #hal.overloaded {

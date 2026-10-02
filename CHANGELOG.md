@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.1
+
+- Corrige el retorno al ecualizador global al cerrar OpenCode, eliminando los procesos finalizados en cada muestreo.
+- Simplifica el calculo de CPU agregada de OpenCode.
+
+## 0.4.0
+
+- Sustituye las barras por una señal sinusoidal SVG continua mientras OpenCode esta abierto.
+- Mantiene el ecualizador para el modo de CPU global.
+
 ## 0.3.1
 
 - Corrige la deteccion de OpenCode en Windows al aceptar `OpenCode` y `OpenCode.exe`.

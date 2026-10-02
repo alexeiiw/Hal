@@ -41,3 +41,11 @@
 - [x] Preparada la version `0.3.1`, el changelog y las reglas Git para publicar el codigo fuente.
 - [x] Compilados correctamente el ejecutable y los instaladores de HAL 0.3.1.
 - [x] Publicado el repositorio inicial de HAL 0.3.1 en GitHub.
+- [x] Reemplazadas las barras por una senal SVG sinusoidal cuando OpenCode esta activo.
+- [x] Actualizada la version a `0.4.0` y la documentacion del nuevo modo visual.
+- [x] Compilados correctamente el ejecutable y los instaladores de HAL 0.4.0.
+- [x] Corregido el refresco de procesos para volver al ecualizador al cerrar OpenCode.
+- [x] Actualizada la version a `0.4.1`, README y changelog.
+- [x] Superado el control de calidad de TypeScript, formato Rust y espacios Git.
+- [x] Compilados correctamente el ejecutable y los instaladores de HAL 0.4.1.
+- [ ] Pendiente: publicar HAL 0.4.1 en GitHub.

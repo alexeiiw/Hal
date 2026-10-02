@@ -1,4 +1,4 @@
-# HAL 0.3.1
+# HAL 0.4.1
 
 HAL es un indicador de escritorio minimalista para Windows. Muestra el uso global de CPU como un ecualizador flotante, transparente y click-through.
 
@@ -8,7 +8,7 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra el uso globa
 - Permanece sobre otras ventanas, pero los clics atraviesan HAL hacia la aplicacion de debajo.
 - Se coloca abajo a la derecha del area util del monitor.
 - Muestra CPU global cada segundo con un decimal.
-- Detecta la ejecucion de `OpenCode.exe` y sustituye el ecualizador por una onda continua sin cambiar la metrica global.
+- Detecta la ejecucion de `OpenCode.exe` y sustituye el ecualizador por una onda sinusoidal SVG sin cambiar la metrica global.
 
 | CPU global | Estado | Color | Ritmo |
 | --- | --- | --- | --- |
@@ -20,7 +20,7 @@ Las alturas de las cinco barras usan `Math.random()` acotado por la CPU medida. 
 
 ## Modo OpenCode
 
-Cuando `OpenCode.exe` esta en ejecucion, HAL pasa del ecualizador aleatorio a una senal ondulada que recorre las cinco barras. Los colores siguen reflejando la CPU global.
+Cuando `OpenCode.exe` esta en ejecucion, HAL oculta el ecualizador y muestra una senal sinusoidal SVG continua. Los colores siguen reflejando la CPU global.
 
 | CPU agregada de OpenCode | Frecuencia de la onda |
 | --- | --- |
@@ -28,7 +28,7 @@ Cuando `OpenCode.exe` esta en ejecucion, HAL pasa del ecualizador aleatorio a un
 | Desde 2% hasta menos de 10% | Media |
 | 10% o mas | Rapida |
 
-La CPU de OpenCode se calcula sumando sus procesos locales. HAL no inspecciona conversaciones, archivos ni argumentos de los procesos.
+La CPU de OpenCode se calcula sumando sus procesos locales. HAL actualiza la lista de procesos cada segundo, por lo que al cerrar OpenCode vuelve automaticamente al ecualizador global. No inspecciona conversaciones, archivos ni argumentos de los procesos.
 
 ## Ejecutar
 
@@ -46,8 +46,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_0.3.1_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_0.3.1_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_0.4.1_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_0.4.1_x64_en-US.msi`
 
 ## Desarrollo
 
@@ -66,8 +66,8 @@ npm run tauri build
 
 ## Arquitectura
 
-- `src-tauri/src/main.rs`: mide la CPU global, detecta `OpenCode.exe`, suma su CPU y emite los estados una vez por segundo.
-- `src/main.ts`: escucha los eventos de CPU y OpenCode para cambiar entre el ecualizador y la senal ondulada.
+- `src-tauri/src/main.rs`: mide la CPU global, refresca los procesos, detecta `OpenCode.exe`, suma su CPU y emite los estados una vez por segundo.
+- `src/main.ts`: escucha los eventos de CPU y OpenCode para cambiar entre el ecualizador y una senal SVG animada.
 - `src/style.css`: define el aspecto y los estados visuales.
 
 HAL mide la CPU global deliberadamente. La deteccion de OpenCode solo modifica el patron y frecuencia de animacion; no registra actividad, no analiza contenido y no cambia la metrica mostrada.

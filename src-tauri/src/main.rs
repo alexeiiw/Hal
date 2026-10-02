@@ -2,7 +2,7 @@
 
 use std::{thread, time::Duration};
 
-use sysinfo::System;
+use sysinfo::{ProcessesToUpdate, System};
 use tauri::{Emitter, Manager, PhysicalPosition, Position};
 
 fn main() {
@@ -30,8 +30,9 @@ fn main() {
                 loop {
                     thread::sleep(Duration::from_secs(1));
                     system.refresh_cpu_all();
+                    system.refresh_processes(ProcessesToUpdate::All, true);
                     let cpu = system.global_cpu_usage();
-                    let opencode_processes: Vec<_> = system
+                    let (opencode_active, opencode_cpu) = system
                         .processes()
                         .values()
                         .filter(|process| {
@@ -39,12 +40,9 @@ fn main() {
                             name.eq_ignore_ascii_case("opencode")
                                 || name.eq_ignore_ascii_case("opencode.exe")
                         })
-                        .collect();
-                    let opencode_active = !opencode_processes.is_empty();
-                    let opencode_cpu = opencode_processes
-                        .iter()
-                        .map(|process| process.cpu_usage())
-                        .sum::<f32>();
+                        .fold((false, 0.0), |(_, total), process| {
+                            (true, total + process.cpu_usage())
+                        });
 
                     if app_handle.emit("evento-cpu", cpu).is_err() {
                         break;
@@ -54,7 +52,10 @@ fn main() {
                         break;
                     }
 
-                    if app_handle.emit("evento-opencode-cpu", opencode_cpu).is_err() {
+                    if app_handle
+                        .emit("evento-opencode-cpu", opencode_cpu)
+                        .is_err()
+                    {
                         break;
                     }
                 }

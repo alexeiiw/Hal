@@ -4,8 +4,9 @@ import "./style.css";
 const bars = Array.from(document.querySelectorAll<HTMLElement>(".equalizer i"));
 const cpuOutput = document.querySelector<HTMLOutputElement>("#cpu");
 const root = document.querySelector<HTMLElement>("#hal");
+const wavePath = document.querySelector<SVGPathElement>("#wave-path");
 
-if (!cpuOutput || !root || bars.length !== 5) {
+if (!cpuOutput || !root || !wavePath || bars.length !== 5) {
   throw new Error("La interfaz HAL no se pudo inicializar.");
 }
 
@@ -27,14 +28,26 @@ function animateBars(): void {
   root!.classList.toggle("opencode-active", opencodeActive);
   root!.style.setProperty("--tempo", `${tempo}ms`);
 
-  for (const [index, bar] of bars.entries()) {
-    const height = opencodeActive
-      ? 52 + Math.sin(wavePhase + index * 1.15) * (28 + Math.min(opencodeCpu, 20) * 0.5)
-      : 12 + Math.random() * activity;
-    bar.style.height = `${Math.min(height, 100)}%`;
+  if (opencodeActive) {
+    const amplitude = 18 + Math.min(opencodeCpu, 20) * 0.45;
+    const points: string[] = [];
+
+    for (let x = 0; x <= 116; x += 2) {
+      const y = 35 + Math.sin((x / 116) * Math.PI * 2 + wavePhase) * amplitude;
+      points.push(`${x === 0 ? "M" : "L"}${x} ${y.toFixed(2)}`);
+    }
+
+    wavePath!.setAttribute("d", points.join(" "));
+    wavePhase += 0.45;
+  } else {
+    wavePhase = 0;
+
+    for (const bar of bars) {
+      const height = 12 + Math.random() * activity;
+      bar.style.height = `${Math.min(height, 100)}%`;
+    }
   }
 
-  wavePhase += opencodeActive ? 0.72 : 0;
   window.setTimeout(animateBars, tempo);
 }
 
