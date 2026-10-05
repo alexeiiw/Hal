@@ -53,3 +53,4 @@
 - [x] Aplicados cristal, halo reactivo, estela de osciloscopio, escaneo y lectura tecnica.
 - [x] Actualizada la version a `0.5.0` y la documentacion correspondiente.
 - [x] Compilados correctamente el ejecutable y los instaladores de HAL 0.5.0.
+- [x] Publicada la version HAL 0.5.0 en GitHub.
