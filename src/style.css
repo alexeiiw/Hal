@@ -20,14 +20,37 @@ body,
 #hal {
   --bar-color: #22c55e;
   --glow: rgba(34, 197, 94, 0.75);
+  position: relative;
   display: grid;
   place-items: center;
   grid-template-rows: 78px 18px;
   padding: 12px 22px;
-  transition: color 120ms ease;
+  border: 1px solid color-mix(in srgb, var(--bar-color) 24%, transparent);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(5, 11, 8, 0.24));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.16), 0 0 14px var(--glow),
+    0 0 30px color-mix(in srgb, var(--glow) 48%, transparent);
+  backdrop-filter: blur(10px);
+  transition: border-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
+}
+
+#hal::before {
+  position: absolute;
+  inset: 7px;
+  border-radius: 7px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--bar-color) 24%, transparent), transparent);
+  content: "";
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.visualizer,
+output {
+  z-index: 1;
 }
 
 .visualizer {
+  position: relative;
   display: grid;
   width: 100%;
   height: 70px;
@@ -74,6 +97,34 @@ body,
   filter: drop-shadow(0 0 4px var(--glow)) drop-shadow(0 0 8px var(--glow));
 }
 
+.signal #wave-tail {
+  opacity: 0.2;
+  stroke-width: 9;
+  filter: blur(3px) drop-shadow(0 0 8px var(--glow));
+}
+
+.visualizer::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 18px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--bar-color) 34%, transparent), transparent);
+  content: "";
+  opacity: 0.3;
+  animation: scan 3.6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes scan {
+  from {
+    left: -18px;
+  }
+
+  to {
+    left: 100%;
+  }
+}
+
 #hal.opencode-active .equalizer {
   opacity: 0;
 }
@@ -95,8 +146,10 @@ body,
 }
 
 output {
-  font-size: 11px;
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 10px;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.16em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-shadow: 0 0 8px currentColor;
 }

@@ -6,16 +6,17 @@
     <title>HAL</title>
   </head>
   <body>
-    <main id="hal" aria-label="Monitor de uso de CPU">
+    <main id="hal" aria-label="Monitor de recursos del sistema">
       <div class="visualizer" aria-hidden="true">
         <div class="equalizer">
           <i></i><i></i><i></i><i></i><i></i>
         </div>
         <svg class="signal" viewBox="0 0 116 70" preserveAspectRatio="none">
+          <path id="wave-tail" />
           <path id="wave-path" />
         </svg>
       </div>
-      <output id="cpu">0%</output>
+      <output id="metric">CPU 0.0%</output>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>

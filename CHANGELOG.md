@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0
+
+- Añade la vista alternada de RAM principal junto a CPU global.
+- Añade cristal, halo reactivo, estela de onda, escaneo y lectura tecnica.
+
 ## 0.4.1
 
 - Corrige el retorno al ecualizador global al cerrar OpenCode, eliminando los procesos finalizados en cada muestreo.

@@ -1,6 +1,6 @@
 [package]
 name = "hal"
-version = "0.4.1"
+version = "0.5.0"
 description = "Indicador flotante de CPU"
 authors = ["HAL"]
 edition = "2021"

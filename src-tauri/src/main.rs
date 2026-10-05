@@ -30,8 +30,14 @@ fn main() {
                 loop {
                     thread::sleep(Duration::from_secs(1));
                     system.refresh_cpu_all();
+                    system.refresh_memory();
                     system.refresh_processes(ProcessesToUpdate::All, true);
                     let cpu = system.global_cpu_usage();
+                    let memory = if system.total_memory() == 0 {
+                        0.0
+                    } else {
+                        system.used_memory() as f32 / system.total_memory() as f32 * 100.0
+                    };
                     let (opencode_active, opencode_cpu) = system
                         .processes()
                         .values()
@@ -45,6 +51,10 @@ fn main() {
                         });
 
                     if app_handle.emit("evento-cpu", cpu).is_err() {
+                        break;
+                    }
+
+                    if app_handle.emit("evento-memoria", memory).is_err() {
                         break;
                     }
 
