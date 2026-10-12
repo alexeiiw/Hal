@@ -1,4 +1,4 @@
-# HAL 0.7.0
+# HAL 0.7.1
 
 HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, clima y hora en una ventana flotante, transparente y click-through.
 
@@ -7,6 +7,7 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, cl
 - Se ejecuta manualmente cuando se necesita; no se inicia con Windows.
 - Permanece sobre otras ventanas, pero los clics atraviesan HAL hacia la aplicacion de debajo.
 - Se coloca abajo a la derecha del area util del monitor.
+- Se muestra como un HUD sin borde, fondo ni panel de cristal para dar prioridad a los iconos.
 - Alterna CPU global, RAM principal, clima y reloj analogico cada cuatro segundos.
 - Detecta la ejecucion de `OpenCode.exe` y sustituye el ecualizador por una onda sinusoidal SVG sin cambiar la metrica global.
 - Consulta la temperatura y condicion meteorologica al iniciar y cada 30 minutos mediante Open-Meteo.
@@ -49,8 +50,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_0.7.0_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_0.7.0_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_0.7.1_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_0.7.1_x64_en-US.msi`
 
 ## Desarrollo
 

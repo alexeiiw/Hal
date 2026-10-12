@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1
+
+- Elimina el borde, fondo de cristal, sombra y escaneo para convertir HAL en un HUD transparente.
+- Amplia los iconos meteorologicos y el reloj analogico dentro de la misma ventana.
+
 ## 0.7.0
 
 - Añade un reloj analogico propio de HAL con agujas de hora y minuto.

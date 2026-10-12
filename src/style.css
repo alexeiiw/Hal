@@ -25,25 +25,9 @@ body,
   position: relative;
   display: grid;
   place-items: center;
-  grid-template-rows: 78px 18px;
-  padding: 12px 22px;
-  border: 1px solid color-mix(in srgb, var(--bar-color) 24%, transparent);
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(5, 11, 8, 0.24));
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.16), 0 0 14px var(--glow),
-    0 0 30px color-mix(in srgb, var(--glow) 48%, transparent);
-  backdrop-filter: blur(10px);
-  transition: border-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
-}
-
-#hal::before {
-  position: absolute;
-  inset: 7px;
-  border-radius: 7px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--bar-color) 24%, transparent), transparent);
-  content: "";
-  opacity: 0.45;
-  pointer-events: none;
+  grid-template-rows: 88px 18px;
+  padding: 7px 10px;
+  transition: color 160ms ease;
 }
 
 .visualizer,
@@ -55,7 +39,7 @@ output {
   position: relative;
   display: grid;
   width: 100%;
-  height: 70px;
+  height: 88px;
 }
 
 .equalizer,
@@ -71,7 +55,7 @@ output {
   justify-content: center;
   gap: 8px;
   width: 100%;
-  height: 70px;
+  height: 88px;
   opacity: 1;
   transition: opacity 140ms ease;
 }
@@ -88,15 +72,15 @@ output {
 
 .signal {
   width: 100%;
-  height: 70px;
+  height: 88px;
   opacity: 0;
   transition: opacity 140ms ease;
 }
 
 .weather-icon {
   place-self: center;
-  width: 56px;
-  height: 56px;
+  width: 82px;
+  height: 82px;
   overflow: visible;
   opacity: 0;
   transition: opacity 140ms ease;
@@ -104,8 +88,8 @@ output {
 
 .hal-clock {
   place-self: center;
-  width: 58px;
-  height: 58px;
+  width: 84px;
+  height: 84px;
   overflow: visible;
   opacity: 0;
   transition: opacity 140ms ease;
@@ -166,25 +150,7 @@ output {
 }
 
 .visualizer::after {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 18px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--bar-color) 34%, transparent), transparent);
-  content: "";
-  opacity: 0.3;
-  animation: scan 3.6s linear infinite;
-  pointer-events: none;
-}
-
-@keyframes scan {
-  from {
-    left: -18px;
-  }
-
-  to {
-    left: 100%;
-  }
+  content: none;
 }
 
 #hal.opencode-active .equalizer {

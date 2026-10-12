@@ -59,3 +59,5 @@
 - [x] Aplicada una paleta meteorologica semantica para sol, nubes, niebla, lluvia, nieve y tormenta.
 - [x] Añadido el reloj analogico de HAL con actualizacion de agujas por minuto.
 - [x] Actualizada la version local a `0.7.0`, README y changelog; pendiente de publicacion por indicacion del usuario.
+- [x] Convertido HAL en un HUD transparente sin panel y ampliadas las vistas de clima y reloj.
+- [x] Actualizada la version local a `0.7.1`; pendiente de revision visual y publicacion.
