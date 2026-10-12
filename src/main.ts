@@ -6,25 +6,119 @@ const metricOutput = document.querySelector<HTMLOutputElement>("#metric");
 const root = document.querySelector<HTMLElement>("#hal");
 const wavePath = document.querySelector<SVGPathElement>("#wave-path");
 const waveTail = document.querySelector<SVGPathElement>("#wave-tail");
+const weatherIcon = document.querySelector<SVGSVGElement>("#weather-icon");
+const clockHour = document.querySelector<SVGPathElement>("#clock-hour");
+const clockMinute = document.querySelector<SVGPathElement>("#clock-minute");
+type MetricView = "cpu" | "memory" | "weather" | "clock";
+type WeatherKind = "clear" | "cloud" | "fog" | "rain" | "snow" | "storm";
 
-if (!metricOutput || !root || !wavePath || !waveTail || bars.length !== 5) {
+if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !clockHour || !clockMinute || bars.length !== 5) {
   throw new Error("La interfaz HAL no se pudo inicializar.");
 }
 
 let cpu = 0;
 let memory = 0;
+let weather: { temperature: number; code: number } | null = null;
 let opencodeActive = false;
 let opencodeCpu = 0;
 let wavePhase = 0;
-let metricView: "cpu" | "memory" = "cpu";
+let metricView: MetricView = "cpu";
+let clockDisplay = "HAL --:--";
+let lastClockMinute = "";
 
-function currentMetric(): { label: string; value: number; busyAt: number; criticalAt: number } {
-  return metricView === "cpu"
-    ? { label: "CPU", value: cpu, busyAt: 40, criticalAt: 70 }
-    : { label: "RAM", value: memory, busyAt: 60, criticalAt: 80 };
+function weatherKind(code: number): WeatherKind {
+  if (code === 0) return "clear";
+  if (code <= 3) return "cloud";
+  if (code <= 48) return "fog";
+  if (code <= 67 || (code >= 80 && code <= 82)) return "rain";
+  if (code <= 77 || code === 85 || code === 86) return "snow";
+  return "storm";
+}
+
+function weatherLabel(code: number): string {
+  const labels: Record<WeatherKind, string> = {
+    clear: "DESPEJADO",
+    cloud: "NUBES",
+    fog: "NIEBLA",
+    rain: "LLUVIA",
+    snow: "NIEVE",
+    storm: "TORMENTA",
+  };
+  return labels[weatherKind(code)];
+}
+
+function weatherIconMarkup(code: number): string {
+  const sun = '<circle cx="25" cy="25" r="10"/><path d="M25 5v7M25 38v7M5 25h7M38 25h7M11 11l5 5M34 34l5 5M39 11l-5 5M16 34l-5 5"/>';
+  const cloud = '<path d="M18 46h29a10 10 0 0 0 0-20 15 15 0 0 0-28-3A12 12 0 0 0 18 46Z"/>';
+  const kind = weatherKind(code);
+
+  if (kind === "clear") return sun;
+  if (kind === "cloud") return `${sun}${cloud}`;
+  if (kind === "fog") return `${cloud}<path d="M15 52h34M20 58h24"/>`;
+  if (kind === "rain") return `${cloud}<path d="m23 51-3 7m12-7-3 7m12-7-3 7"/>`;
+  if (kind === "snow") return `${cloud}<path d="m24 53 0 8m-4-4h8m11-4v8m-4-4h8"/>`;
+  return `${cloud}<path d="m34 50-5 9h6l-3 7 8-11h-6l4-5Z"/>`;
+}
+
+function setWeatherPalette(code: number): void {
+  const palettes: Record<WeatherKind, [string, string]> = {
+    clear: ["#22c55e", "rgba(34, 197, 94, 0.75)"],
+    cloud: ["#38bdf8", "rgba(56, 189, 248, 0.78)"],
+    fog: ["#7dd3fc", "rgba(125, 211, 252, 0.72)"],
+    rain: ["#3b82f6", "rgba(59, 130, 246, 0.8)"],
+    snow: ["#e0f2fe", "rgba(224, 242, 254, 0.82)"],
+    storm: ["#a78bfa", "rgba(167, 139, 250, 0.82)"],
+  };
+  const [color, glow] = palettes[weatherKind(code)];
+  root!.style.setProperty("--weather-color", color);
+  root!.style.setProperty("--weather-glow", glow);
+}
+
+function updateClock(): void {
+  const now = new Date();
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+  const minuteKey = `${hours}:${minutes}`;
+
+  if (minuteKey === lastClockMinute) return;
+
+  lastClockMinute = minuteKey;
+  clockDisplay = `HAL ${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+  clockHour!.setAttribute("transform", `rotate(${(hours % 12) * 30 + minutes * 0.5} 32 32)`);
+  clockMinute!.setAttribute("transform", `rotate(${minutes * 6} 32 32)`);
+}
+
+function currentMetric(): {
+  display: string;
+  value: number;
+  busyAt: number;
+  criticalAt: number;
+} {
+  if (metricView === "cpu") {
+    return { display: `CPU ${cpu.toFixed(1)}%`, value: cpu, busyAt: 40, criticalAt: 70 };
+  }
+
+  if (metricView === "memory") {
+    return { display: `RAM ${memory.toFixed(1)}%`, value: memory, busyAt: 60, criticalAt: 80 };
+  }
+
+  if (metricView === "clock") {
+    return { display: clockDisplay, value: 0, busyAt: 101, criticalAt: 102 };
+  }
+
+  return weather
+    ? {
+        display: `${weather.temperature.toFixed(0)} C ${weatherLabel(weather.code)}`,
+        value: 0,
+        busyAt: 101,
+        criticalAt: 102,
+      }
+    : { display: "CLIMA NO DISP.", value: 0, busyAt: 101, criticalAt: 102 };
 }
 
 function animateBars(): void {
+  if (metricView === "clock") updateClock();
+
   const metric = currentMetric();
   const overloaded = metric.value >= metric.criticalAt;
   const busy = metric.value >= metric.busyAt && !overloaded;
@@ -36,14 +130,17 @@ function animateBars(): void {
   const globalTempo = overloaded ? 110 : busy ? 220 : 460;
   const waveTempo = opencodeCpu >= 10 ? 80 : opencodeCpu >= 2 ? 170 : 440;
   const showOpenCodeWave = metricView === "cpu" && opencodeActive;
-  const tempo = showOpenCodeWave ? waveTempo : globalTempo;
+  const staticView = metricView === "clock" || (metricView === "weather" && weather !== null);
+  const tempo = staticView ? 1000 : showOpenCodeWave ? waveTempo : globalTempo;
 
   root!.classList.toggle("overloaded", overloaded);
   root!.classList.toggle("busy", busy);
   root!.classList.toggle("opencode-active", showOpenCodeWave);
   root!.classList.toggle("memory-view", metricView === "memory");
+  root!.classList.toggle("weather-view", metricView === "weather" && weather !== null);
+  root!.classList.toggle("clock-view", metricView === "clock");
   root!.style.setProperty("--tempo", `${tempo}ms`);
-  metricOutput!.value = `${metric.label} ${metric.value.toFixed(1)}%`;
+  metricOutput!.value = metric.display;
   metricOutput!.textContent = metricOutput!.value;
 
   if (showOpenCodeWave) {
@@ -59,7 +156,7 @@ function animateBars(): void {
     waveTail!.setAttribute("d", wavePath!.getAttribute("d") ?? nextPath);
     wavePath!.setAttribute("d", nextPath);
     wavePhase += 0.45;
-  } else {
+  } else if (!staticView) {
     wavePhase = 0;
 
     for (const bar of bars) {
@@ -87,8 +184,36 @@ void listen<number>("evento-opencode-cpu", (event) => {
   opencodeCpu = Math.max(0, event.payload);
 });
 
+async function loadWeather(position: GeolocationPosition): Promise<void> {
+  const { latitude, longitude } = position.coords;
+  const response = await fetch(
+    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code`,
+  );
+  const data = (await response.json()) as {
+    current?: { temperature_2m: number; weather_code: number };
+  };
+
+  if (data.current) {
+    weather = { temperature: data.current.temperature_2m, code: data.current.weather_code };
+    weatherIcon!.innerHTML = weatherIconMarkup(weather.code);
+    setWeatherPalette(weather.code);
+  }
+}
+
+function refreshWeather(): void {
+  navigator.geolocation?.getCurrentPosition(
+    (position) => void loadWeather(position).catch(() => undefined),
+    () => undefined,
+    { maximumAge: 30 * 60 * 1000, timeout: 10_000 },
+  );
+}
+
+const views: MetricView[] = ["cpu", "memory", "weather", "clock"];
 window.setInterval(() => {
-  metricView = metricView === "cpu" ? "memory" : "cpu";
+  metricView = views[(views.indexOf(metricView) + 1) % views.length];
 }, 4000);
+
+refreshWeather();
+window.setInterval(refreshWeather, 30 * 60 * 1000);
 
 animateBars();

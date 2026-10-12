@@ -20,6 +20,8 @@ body,
 #hal {
   --bar-color: #22c55e;
   --glow: rgba(34, 197, 94, 0.75);
+  --weather-color: var(--bar-color);
+  --weather-glow: var(--glow);
   position: relative;
   display: grid;
   place-items: center;
@@ -57,7 +59,9 @@ output {
 }
 
 .equalizer,
-.signal {
+.signal,
+.weather-icon,
+.hal-clock {
   grid-area: 1 / 1;
 }
 
@@ -87,6 +91,64 @@ output {
   height: 70px;
   opacity: 0;
   transition: opacity 140ms ease;
+}
+
+.weather-icon {
+  place-self: center;
+  width: 56px;
+  height: 56px;
+  overflow: visible;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.hal-clock {
+  place-self: center;
+  width: 58px;
+  height: 58px;
+  overflow: visible;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.hal-clock circle,
+.hal-clock path {
+  fill: none;
+  stroke: var(--bar-color);
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 3px var(--glow));
+}
+
+.hal-clock > circle:first-child {
+  stroke-width: 2;
+}
+
+.hal-clock .clock-marks {
+  stroke-width: 3;
+}
+
+.hal-clock .clock-hand {
+  stroke-width: 4;
+  transition: transform 220ms ease-out;
+}
+
+.hal-clock .minute-hand {
+  stroke-width: 3;
+}
+
+.hal-clock .clock-core {
+  fill: var(--bar-color);
+  stroke-width: 0;
+}
+
+.weather-icon circle,
+.weather-icon path {
+  fill: none;
+  stroke: var(--weather-color);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 4px var(--weather-glow)) drop-shadow(0 0 8px var(--weather-glow));
 }
 
 .signal path {
@@ -130,6 +192,22 @@ output {
 }
 
 #hal.opencode-active .signal {
+  opacity: 1;
+}
+
+#hal.weather-view .equalizer {
+  opacity: 0;
+}
+
+#hal.weather-view .weather-icon {
+  opacity: 1;
+}
+
+#hal.clock-view .equalizer {
+  opacity: 0;
+}
+
+#hal.clock-view .hal-clock {
   opacity: 1;
 }
 

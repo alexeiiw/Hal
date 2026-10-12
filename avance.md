@@ -54,3 +54,8 @@
 - [x] Actualizada la version a `0.5.0` y la documentacion correspondiente.
 - [x] Compilados correctamente el ejecutable y los instaladores de HAL 0.5.0.
 - [x] Publicada la version HAL 0.5.0 en GitHub.
+- [x] Añadida la vista de clima con temperatura, condicion e icono SVG dinamico.
+- [x] Actualizada la version local a `0.6.0`, README y changelog; pendiente de publicacion por indicacion del usuario.
+- [x] Aplicada una paleta meteorologica semantica para sol, nubes, niebla, lluvia, nieve y tormenta.
+- [x] Añadido el reloj analogico de HAL con actualizacion de agujas por minuto.
+- [x] Actualizada la version local a `0.7.0`, README y changelog; pendiente de publicacion por indicacion del usuario.

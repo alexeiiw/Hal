@@ -6,7 +6,7 @@
     <title>HAL</title>
   </head>
   <body>
-    <main id="hal" aria-label="Monitor de recursos del sistema">
+    <main id="hal" aria-label="Monitor de recursos, clima y hora">
       <div class="visualizer" aria-hidden="true">
         <div class="equalizer">
           <i></i><i></i><i></i><i></i><i></i>
@@ -14,6 +14,14 @@
         <svg class="signal" viewBox="0 0 116 70" preserveAspectRatio="none">
           <path id="wave-tail" />
           <path id="wave-path" />
+        </svg>
+        <svg id="weather-icon" class="weather-icon" viewBox="0 0 64 64" aria-hidden="true"></svg>
+        <svg id="hal-clock" class="hal-clock" viewBox="0 0 64 64" aria-hidden="true">
+          <circle cx="32" cy="32" r="25" />
+          <path class="clock-marks" d="M32 10v5M32 49v5M10 32h5M49 32h5" />
+          <path id="clock-hour" class="clock-hand hour-hand" d="M32 32V20" />
+          <path id="clock-minute" class="clock-hand minute-hand" d="M32 32V13" />
+          <circle class="clock-core" cx="32" cy="32" r="3" />
         </svg>
       </div>
       <output id="metric">CPU 0.0%</output>
