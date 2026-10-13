@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.0
+
+- Añade la vista BTC/USD con icono, flecha de variacion y alerta roja en $76,000 USD o menos.
+- Consulta CoinGecko al iniciar y cada seis horas; conserva un cache local valido durante 24 horas.
+
 ## 0.7.1
 
 - Elimina el borde, fondo de cristal, sombra y escaneo para convertir HAL en un HUD transparente.

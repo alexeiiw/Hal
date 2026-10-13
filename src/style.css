@@ -22,6 +22,8 @@ body,
   --glow: rgba(34, 197, 94, 0.75);
   --weather-color: var(--bar-color);
   --weather-glow: var(--glow);
+  --btc-color: #f7931a;
+  --btc-glow: rgba(247, 147, 26, 0.8);
   position: relative;
   display: grid;
   place-items: center;
@@ -45,7 +47,8 @@ output {
 .equalizer,
 .signal,
 .weather-icon,
-.hal-clock {
+.hal-clock,
+.btc-icon {
   grid-area: 1 / 1;
 }
 
@@ -93,6 +96,32 @@ output {
   overflow: visible;
   opacity: 0;
   transition: opacity 140ms ease;
+}
+
+.btc-icon {
+  place-self: center;
+  width: 82px;
+  height: 82px;
+  overflow: visible;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.btc-icon circle,
+.btc-icon path {
+  fill: none;
+  stroke: var(--btc-color);
+  stroke-linecap: round;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 4px var(--btc-glow)) drop-shadow(0 0 8px var(--btc-glow));
+}
+
+.btc-icon text {
+  fill: var(--btc-color);
+  font-family: Georgia, serif;
+  font-size: 34px;
+  font-weight: 700;
+  filter: drop-shadow(0 0 4px var(--btc-glow));
 }
 
 .hal-clock circle,
@@ -175,6 +204,28 @@ output {
 
 #hal.clock-view .hal-clock {
   opacity: 1;
+}
+
+#hal.btc-view .equalizer {
+  opacity: 0;
+}
+
+#hal.btc-view .btc-icon {
+  opacity: 1;
+}
+
+#hal.btc-view.btc-up output {
+  color: #22c55e;
+}
+
+#hal.btc-view.btc-down output,
+#hal.btc-view.btc-alert output {
+  color: #ef4444;
+}
+
+#hal.btc-alert {
+  --btc-color: #ef4444;
+  --btc-glow: rgba(239, 68, 68, 0.85);
 }
 
 #hal.overloaded {

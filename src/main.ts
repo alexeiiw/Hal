@@ -9,8 +9,14 @@ const waveTail = document.querySelector<SVGPathElement>("#wave-tail");
 const weatherIcon = document.querySelector<SVGSVGElement>("#weather-icon");
 const clockHour = document.querySelector<SVGPathElement>("#clock-hour");
 const clockMinute = document.querySelector<SVGPathElement>("#clock-minute");
-type MetricView = "cpu" | "memory" | "weather" | "clock";
+type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin";
 type WeatherKind = "clear" | "cloud" | "fog" | "rain" | "snow" | "storm";
+type BitcoinQuote = { price: number; previousPrice: number | null; updatedAt: number };
+
+const bitcoinCacheKey = "hal-bitcoin-usd";
+const bitcoinRefreshMs = 6 * 60 * 60 * 1000;
+const bitcoinCacheMaxAgeMs = 24 * 60 * 60 * 1000;
+const bitcoinBuyThreshold = 76_000;
 
 if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !clockHour || !clockMinute || bars.length !== 5) {
   throw new Error("La interfaz HAL no se pudo inicializar.");
@@ -19,6 +25,7 @@ if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !clockHo
 let cpu = 0;
 let memory = 0;
 let weather: { temperature: number; code: number } | null = null;
+let bitcoin: BitcoinQuote | null = null;
 let opencodeActive = false;
 let opencodeCpu = 0;
 let wavePhase = 0;
@@ -88,6 +95,19 @@ function updateClock(): void {
   clockMinute!.setAttribute("transform", `rotate(${minutes * 6} 32 32)`);
 }
 
+function bitcoinQuote(): BitcoinQuote | null {
+  return bitcoin && Date.now() - bitcoin.updatedAt <= bitcoinCacheMaxAgeMs ? bitcoin : null;
+}
+
+function bitcoinDirection(quote: BitcoinQuote): "up" | "down" | "flat" {
+  if (quote.previousPrice === null || quote.price === quote.previousPrice) return "flat";
+  return quote.price > quote.previousPrice ? "up" : "down";
+}
+
+function formatBitcoinPrice(price: number): string {
+  return `$${(price / 1_000).toFixed(1)}K`;
+}
+
 function currentMetric(): {
   display: string;
   value: number;
@@ -104,6 +124,21 @@ function currentMetric(): {
 
   if (metricView === "clock") {
     return { display: clockDisplay, value: 0, busyAt: 101, criticalAt: 102 };
+  }
+
+  if (metricView === "bitcoin") {
+    const quote = bitcoinQuote();
+
+    if (!quote) return { display: "BTC NO DISP.", value: 0, busyAt: 101, criticalAt: 102 };
+
+    const arrow = { up: "↑", down: "↓", flat: "→" }[bitcoinDirection(quote)];
+    const alert = quote.price <= bitcoinBuyThreshold;
+    return {
+      display: `BTC ${formatBitcoinPrice(quote.price)} ${arrow}`,
+      value: alert ? 100 : 0,
+      busyAt: 101,
+      criticalAt: 90,
+    };
   }
 
   return weather
@@ -130,7 +165,7 @@ function animateBars(): void {
   const globalTempo = overloaded ? 110 : busy ? 220 : 460;
   const waveTempo = opencodeCpu >= 10 ? 80 : opencodeCpu >= 2 ? 170 : 440;
   const showOpenCodeWave = metricView === "cpu" && opencodeActive;
-  const staticView = metricView === "clock" || (metricView === "weather" && weather !== null);
+  const staticView = metricView === "clock" || metricView === "bitcoin" || (metricView === "weather" && weather !== null);
   const tempo = staticView ? 1000 : showOpenCodeWave ? waveTempo : globalTempo;
 
   root!.classList.toggle("overloaded", overloaded);
@@ -139,6 +174,11 @@ function animateBars(): void {
   root!.classList.toggle("memory-view", metricView === "memory");
   root!.classList.toggle("weather-view", metricView === "weather" && weather !== null);
   root!.classList.toggle("clock-view", metricView === "clock");
+  root!.classList.toggle("btc-view", metricView === "bitcoin");
+  const quote = bitcoinQuote();
+  root!.classList.toggle("btc-alert", metricView === "bitcoin" && !!quote && quote.price <= bitcoinBuyThreshold);
+  root!.classList.toggle("btc-up", metricView === "bitcoin" && !!quote && bitcoinDirection(quote) === "up");
+  root!.classList.toggle("btc-down", metricView === "bitcoin" && !!quote && bitcoinDirection(quote) === "down");
   root!.style.setProperty("--tempo", `${tempo}ms`);
   metricOutput!.value = metric.display;
   metricOutput!.textContent = metricOutput!.value;
@@ -208,12 +248,43 @@ function refreshWeather(): void {
   );
 }
 
-const views: MetricView[] = ["cpu", "memory", "weather", "clock"];
+function loadBitcoinCache(): void {
+  try {
+    const cached = JSON.parse(localStorage.getItem(bitcoinCacheKey) ?? "null") as BitcoinQuote | null;
+
+    if (cached && typeof cached.price === "number" && typeof cached.updatedAt === "number") {
+      bitcoin = { price: cached.price, previousPrice: cached.previousPrice ?? null, updatedAt: cached.updatedAt };
+    }
+  } catch {
+    localStorage.removeItem(bitcoinCacheKey);
+  }
+}
+
+async function refreshBitcoin(): Promise<void> {
+  const response = await fetch(
+    "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+  );
+
+  if (!response.ok) throw new Error(`CoinGecko respondio ${response.status}`);
+
+  const data = (await response.json()) as { bitcoin?: { usd?: number } };
+  const price = data.bitcoin?.usd;
+
+  if (typeof price !== "number") throw new Error("CoinGecko no devolvio BTC/USD");
+
+  bitcoin = { price, previousPrice: bitcoin?.price ?? null, updatedAt: Date.now() };
+  localStorage.setItem(bitcoinCacheKey, JSON.stringify(bitcoin));
+}
+
+const views: MetricView[] = ["cpu", "memory", "weather", "clock", "bitcoin"];
 window.setInterval(() => {
   metricView = views[(views.indexOf(metricView) + 1) % views.length];
 }, 4000);
 
 refreshWeather();
 window.setInterval(refreshWeather, 30 * 60 * 1000);
+loadBitcoinCache();
+void refreshBitcoin().catch(() => undefined);
+window.setInterval(() => void refreshBitcoin().catch(() => undefined), bitcoinRefreshMs);
 
 animateBars();

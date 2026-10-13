@@ -61,3 +61,5 @@
 - [x] Actualizada la version local a `0.7.0`, README y changelog; pendiente de publicacion por indicacion del usuario.
 - [x] Convertido HAL en un HUD transparente sin panel y ampliadas las vistas de clima y reloj.
 - [x] Actualizada la version local a `0.7.1`; pendiente de revision visual y publicacion.
+- [x] Añadida la vista BTC/USD con cache local de 24 horas, consulta inicial y cada seis horas, y alerta visual en $76,000.
+- [x] Actualizada la version local a `0.8.0`; pendiente de validacion y publicacion por indicacion del usuario.
