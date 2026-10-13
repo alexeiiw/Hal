@@ -63,3 +63,6 @@
 - [x] Actualizada la version local a `0.7.1`; pendiente de revision visual y publicacion.
 - [x] Añadida la vista BTC/USD con cache local de 24 horas, consulta inicial y cada seis horas, y alerta visual en $76,000.
 - [x] Actualizada la version local a `0.8.0`; pendiente de validacion y publicacion por indicacion del usuario.
+- [x] Añadida la vista final de mascota HAL con SVG estatico de bajo consumo.
+- [x] Actualizada la version local a `0.9.0`; pendiente de validacion y publicacion por indicacion del usuario.
+- [x] Publicada la version HAL 0.9.0 en GitHub.

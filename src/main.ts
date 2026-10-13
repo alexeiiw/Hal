@@ -9,7 +9,7 @@ const waveTail = document.querySelector<SVGPathElement>("#wave-tail");
 const weatherIcon = document.querySelector<SVGSVGElement>("#weather-icon");
 const clockHour = document.querySelector<SVGPathElement>("#clock-hour");
 const clockMinute = document.querySelector<SVGPathElement>("#clock-minute");
-type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin";
+type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face";
 type WeatherKind = "clear" | "cloud" | "fog" | "rain" | "snow" | "storm";
 type BitcoinQuote = { price: number; previousPrice: number | null; updatedAt: number };
 
@@ -141,6 +141,10 @@ function currentMetric(): {
     };
   }
 
+  if (metricView === "face") {
+    return { display: "HAL EN LINEA", value: 0, busyAt: 101, criticalAt: 102 };
+  }
+
   return weather
     ? {
         display: `${weather.temperature.toFixed(0)} C ${weatherLabel(weather.code)}`,
@@ -165,7 +169,7 @@ function animateBars(): void {
   const globalTempo = overloaded ? 110 : busy ? 220 : 460;
   const waveTempo = opencodeCpu >= 10 ? 80 : opencodeCpu >= 2 ? 170 : 440;
   const showOpenCodeWave = metricView === "cpu" && opencodeActive;
-  const staticView = metricView === "clock" || metricView === "bitcoin" || (metricView === "weather" && weather !== null);
+  const staticView = metricView === "clock" || metricView === "bitcoin" || metricView === "face" || (metricView === "weather" && weather !== null);
   const tempo = staticView ? 1000 : showOpenCodeWave ? waveTempo : globalTempo;
 
   root!.classList.toggle("overloaded", overloaded);
@@ -175,6 +179,7 @@ function animateBars(): void {
   root!.classList.toggle("weather-view", metricView === "weather" && weather !== null);
   root!.classList.toggle("clock-view", metricView === "clock");
   root!.classList.toggle("btc-view", metricView === "bitcoin");
+  root!.classList.toggle("face-view", metricView === "face");
   const quote = bitcoinQuote();
   root!.classList.toggle("btc-alert", metricView === "bitcoin" && !!quote && quote.price <= bitcoinBuyThreshold);
   root!.classList.toggle("btc-up", metricView === "bitcoin" && !!quote && bitcoinDirection(quote) === "up");
@@ -276,7 +281,7 @@ async function refreshBitcoin(): Promise<void> {
   localStorage.setItem(bitcoinCacheKey, JSON.stringify(bitcoin));
 }
 
-const views: MetricView[] = ["cpu", "memory", "weather", "clock", "bitcoin"];
+const views: MetricView[] = ["cpu", "memory", "weather", "clock", "bitcoin", "face"];
 window.setInterval(() => {
   metricView = views[(views.indexOf(metricView) + 1) % views.length];
 }, 4000);

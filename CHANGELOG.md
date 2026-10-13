@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.0
+
+- Añade la vista final de mascota HAL con un SVG original de bajo consumo.
+
 ## 0.8.0
 
 - Añade la vista BTC/USD con icono, flecha de variacion y alerta roja en $76,000 USD o menos.

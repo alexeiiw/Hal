@@ -1,6 +1,6 @@
-# HAL 0.8.0
+# HAL 0.9.0
 
-HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, clima, hora y Bitcoin en una ventana flotante, transparente y click-through.
+HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, clima, hora, Bitcoin y una mascota HAL en una ventana flotante, transparente y click-through.
 
 ## Comportamiento
 
@@ -8,7 +8,7 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, cl
 - Permanece sobre otras ventanas, pero los clics atraviesan HAL hacia la aplicacion de debajo.
 - Se coloca abajo a la derecha del area util del monitor.
 - Se muestra como un HUD sin borde, fondo ni panel de cristal para dar prioridad a los iconos.
-- Alterna CPU global, RAM principal, clima, reloj analogico y Bitcoin cada cuatro segundos.
+- Alterna CPU global, RAM principal, clima, reloj analogico, Bitcoin y mascota HAL cada cuatro segundos.
 - Detecta la ejecucion de `OpenCode.exe` y sustituye el ecualizador por una onda sinusoidal SVG sin cambiar la metrica global.
 - Consulta la temperatura y condicion meteorologica al iniciar y cada 30 minutos mediante Open-Meteo.
 - Solicita la ubicacion del sistema para el clima. Si se deniega el permiso o falla la consulta, muestra `CLIMA NO DISP.`.
@@ -20,12 +20,17 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, cl
 | Clima | No aplica | No aplica | Semantico segun la condicion |
 | Reloj | No aplica | No aplica | Esfera tecnica verde de HAL |
 | Bitcoin | No aplica | $76,000 USD | Naranja, verde/rojo y alerta roja |
+| Mascota HAL | No aplica | No aplica | Carcasa, ojos y sensores verdes |
 
 Cada vista conserva su metrica durante cuatro segundos. Las barras usan `Math.random()` acotado por la metrica visible. La vista de clima muestra un icono SVG de sol verde, nubes y niebla celeste, lluvia azul, nieve blanco azulado o tormenta violeta. El reloj analogico muestra solo hora y minutos, con la lectura `HAL HH:MM`.
 
 ## Bitcoin
 
 HAL consulta BTC/USD en CoinGecko al iniciar y cada seis horas. Guarda localmente el ultimo precio valido durante un maximo de 24 horas para mantener la lectura si falla la red o el servicio. La flecha verde o roja compara la ultima consulta con la anterior. Cuando BTC llega a `$76,000 USD` o menos, el icono y la lectura se vuelven rojos como alerta visual de compra.
+
+## Mascota HAL
+
+La ultima vista del ciclo muestra una mascota SVG estatica con carcasa ovalada, ojos, antena y nodos de estado. No descarga imagenes ni ejecuta animaciones adicionales; su lectura es `HAL EN LINEA`.
 
 ## Modo OpenCode
 
@@ -55,8 +60,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_0.8.0_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_0.8.0_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_0.9.0_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_0.9.0_x64_en-US.msi`
 
 ## Desarrollo
 
@@ -76,7 +81,7 @@ npm run tauri build
 ## Arquitectura
 
 - `src-tauri/src/main.rs`: mide CPU, RAM, procesos y OpenCode una vez por segundo.
-- `src/main.ts`: alterna CPU, RAM, clima, reloj y Bitcoin; obtiene el clima con geolocalizacion y Open-Meteo, y BTC/USD con CoinGecko.
-- `src/style.css`: define el HUD, iconos, reloj analogico SVG y estado visual de Bitcoin.
+- `src/main.ts`: alterna CPU, RAM, clima, reloj, Bitcoin y mascota; obtiene el clima con geolocalizacion y Open-Meteo, y BTC/USD con CoinGecko.
+- `src/style.css`: define el HUD, iconos, reloj analogico SVG, mascota y estado visual de Bitcoin.
 
 HAL mide la CPU global deliberadamente. La deteccion de OpenCode solo modifica el patron y frecuencia de animacion; no registra actividad, no analiza contenido y no cambia la metrica mostrada. Para el clima, el navegador solicita ubicacion y envia las coordenadas a Open-Meteo; HAL no las guarda. El reloj no realiza llamadas ni crea temporizadores propios: reutiliza el ciclo visual y cambia sus agujas solo al cambiar el minuto. Para Bitcoin, HAL guarda solo el precio, el precio anterior y la fecha de consulta en el almacenamiento local.

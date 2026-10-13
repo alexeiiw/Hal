@@ -48,7 +48,8 @@ output {
 .signal,
 .weather-icon,
 .hal-clock,
-.btc-icon {
+.btc-icon,
+.hal-face {
   grid-area: 1 / 1;
 }
 
@@ -105,6 +106,42 @@ output {
   overflow: visible;
   opacity: 0;
   transition: opacity 140ms ease;
+}
+
+.hal-face {
+  place-self: center;
+  width: 112px;
+  height: 76px;
+  overflow: visible;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.face-shell {
+  fill: color-mix(in srgb, #dcfce7 88%, var(--bar-color));
+  stroke: var(--bar-color);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 5px var(--glow)) drop-shadow(0 0 10px var(--glow));
+}
+
+.face-eye {
+  fill: #07110b;
+  filter: drop-shadow(0 0 3px var(--glow));
+}
+
+.face-antenna,
+.face-node,
+.face-status {
+  fill: none;
+  stroke: var(--bar-color);
+  stroke-linecap: round;
+  stroke-width: 2;
+  filter: drop-shadow(0 0 3px var(--glow));
+}
+
+.face-sensor {
+  fill: var(--bar-color);
+  filter: drop-shadow(0 0 4px var(--glow));
 }
 
 .btc-icon circle,
@@ -226,6 +263,14 @@ output {
 #hal.btc-alert {
   --btc-color: #ef4444;
   --btc-glow: rgba(239, 68, 68, 0.85);
+}
+
+#hal.face-view .equalizer {
+  opacity: 0;
+}
+
+#hal.face-view .hal-face {
+  opacity: 1;
 }
 
 #hal.overloaded {
