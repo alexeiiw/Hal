@@ -66,3 +66,10 @@
 - [x] Añadida la vista final de mascota HAL con SVG estatico de bajo consumo.
 - [x] Actualizada la version local a `0.9.0`; pendiente de validacion y publicacion por indicacion del usuario.
 - [x] Publicada la version HAL 0.9.0 en GitHub.
+- [x] Añadido control local mediante Telegram para modos, vistas y frase de la mascota.
+- [x] Actualizada la version local a `1.0.0`; pendiente de validacion y publicacion por indicacion del usuario.
+- [x] Añadido `/off hal` para apagar HAL de forma remota desde Telegram.
+- [x] Actualizada la version local a `1.0.1`; pendiente de validacion y publicacion por indicacion del usuario.
+- [x] Añadidos `/inventory`, `/task` y vista de tarea prioritaria.
+- [x] Refinadas las caras por modo: normal limpia, capucha developer, lentes focus y audifonos relax.
+- [x] Actualizada la version local a `1.1.0`; pendiente de validacion y publicacion por indicacion del usuario.

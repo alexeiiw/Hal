@@ -9,14 +9,18 @@ const waveTail = document.querySelector<SVGPathElement>("#wave-tail");
 const weatherIcon = document.querySelector<SVGSVGElement>("#weather-icon");
 const clockHour = document.querySelector<SVGPathElement>("#clock-hour");
 const clockMinute = document.querySelector<SVGPathElement>("#clock-minute");
-type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face";
+type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task";
 type WeatherKind = "clear" | "cloud" | "fog" | "rain" | "snow" | "storm";
 type BitcoinQuote = { price: number; previousPrice: number | null; updatedAt: number };
+type HalMode = "normal" | "developer" | "focus" | "relax";
+type ViewChange = { view: MetricView; enabled: boolean };
 
 const bitcoinCacheKey = "hal-bitcoin-usd";
 const bitcoinRefreshMs = 6 * 60 * 60 * 1000;
 const bitcoinCacheMaxAgeMs = 24 * 60 * 60 * 1000;
 const bitcoinBuyThreshold = 76_000;
+const halSettingsKey = "hal-settings";
+const allViews: MetricView[] = ["cpu", "memory", "weather", "clock", "bitcoin", "face", "task"];
 
 if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !clockHour || !clockMinute || bars.length !== 5) {
   throw new Error("La interfaz HAL no se pudo inicializar.");
@@ -32,6 +36,49 @@ let wavePhase = 0;
 let metricView: MetricView = "cpu";
 let clockDisplay = "HAL --:--";
 let lastClockMinute = "";
+let halMode: HalMode = "normal";
+let phrase: string | null = null;
+let task: string | null = null;
+let enabledViews: Record<MetricView, boolean> = {
+  cpu: true,
+  memory: true,
+  weather: true,
+  clock: true,
+  bitcoin: true,
+  face: true,
+  task: true,
+};
+
+function saveHalSettings(): void {
+  localStorage.setItem(halSettingsKey, JSON.stringify({ mode: halMode, phrase, task, enabledViews }));
+}
+
+function loadHalSettings(): void {
+  try {
+    const saved = JSON.parse(localStorage.getItem(halSettingsKey) ?? "{}") as {
+      mode?: HalMode;
+      phrase?: string | null;
+      task?: string | null;
+      enabledViews?: Partial<Record<MetricView, boolean>>;
+    };
+
+    if (["normal", "developer", "focus", "relax"].includes(saved.mode ?? "")) {
+      halMode = saved.mode!;
+    }
+    phrase = typeof saved.phrase === "string" ? saved.phrase : null;
+    task = typeof saved.task === "string" ? saved.task : null;
+    enabledViews = { ...enabledViews, ...saved.enabledViews };
+  } catch {
+    localStorage.removeItem(halSettingsKey);
+  }
+
+  root!.dataset.mode = halMode;
+}
+
+function activeViews(): MetricView[] {
+  const active = allViews.filter((view) => enabledViews[view] && (view !== "task" || task !== null));
+  return active.length > 0 ? active : ["face"];
+}
 
 function weatherKind(code: number): WeatherKind {
   if (code === 0) return "clear";
@@ -142,7 +189,11 @@ function currentMetric(): {
   }
 
   if (metricView === "face") {
-    return { display: "HAL EN LINEA", value: 0, busyAt: 101, criticalAt: 102 };
+    return { display: phrase ?? "HAL EN LINEA", value: 0, busyAt: 101, criticalAt: 102 };
+  }
+
+  if (metricView === "task") {
+    return { display: task ?? "SIN TAREA", value: 0, busyAt: 101, criticalAt: 102 };
   }
 
   return weather
@@ -169,7 +220,7 @@ function animateBars(): void {
   const globalTempo = overloaded ? 110 : busy ? 220 : 460;
   const waveTempo = opencodeCpu >= 10 ? 80 : opencodeCpu >= 2 ? 170 : 440;
   const showOpenCodeWave = metricView === "cpu" && opencodeActive;
-  const staticView = metricView === "clock" || metricView === "bitcoin" || metricView === "face" || (metricView === "weather" && weather !== null);
+  const staticView = metricView === "clock" || metricView === "bitcoin" || metricView === "face" || metricView === "task" || (metricView === "weather" && weather !== null);
   const tempo = staticView ? 1000 : showOpenCodeWave ? waveTempo : globalTempo;
 
   root!.classList.toggle("overloaded", overloaded);
@@ -180,6 +231,7 @@ function animateBars(): void {
   root!.classList.toggle("clock-view", metricView === "clock");
   root!.classList.toggle("btc-view", metricView === "bitcoin");
   root!.classList.toggle("face-view", metricView === "face");
+  root!.classList.toggle("task-view", metricView === "task");
   const quote = bitcoinQuote();
   root!.classList.toggle("btc-alert", metricView === "bitcoin" && !!quote && quote.price <= bitcoinBuyThreshold);
   root!.classList.toggle("btc-up", metricView === "bitcoin" && !!quote && bitcoinDirection(quote) === "up");
@@ -227,6 +279,36 @@ void listen<boolean>("evento-opencode", (event) => {
 
 void listen<number>("evento-opencode-cpu", (event) => {
   opencodeCpu = Math.max(0, event.payload);
+});
+
+void listen<HalMode>("evento-modo", (event) => {
+  if (["normal", "developer", "focus", "relax"].includes(event.payload)) {
+    halMode = event.payload;
+    root!.dataset.mode = halMode;
+    saveHalSettings();
+  }
+});
+
+void listen<ViewChange>("evento-vista", (event) => {
+  if (!allViews.includes(event.payload.view)) return;
+
+  const nextViews = { ...enabledViews, [event.payload.view]: event.payload.enabled };
+  if (!Object.values(nextViews).some(Boolean)) return;
+
+  enabledViews = nextViews;
+  if (!enabledViews[metricView]) metricView = activeViews()[0];
+  saveHalSettings();
+});
+
+void listen<string | null>("evento-frase", (event) => {
+  phrase = event.payload;
+  saveHalSettings();
+});
+
+void listen<string | null>("evento-tarea", (event) => {
+  task = event.payload;
+  if (metricView === "task" && !task) metricView = activeViews()[0];
+  saveHalSettings();
 });
 
 async function loadWeather(position: GeolocationPosition): Promise<void> {
@@ -281,11 +363,12 @@ async function refreshBitcoin(): Promise<void> {
   localStorage.setItem(bitcoinCacheKey, JSON.stringify(bitcoin));
 }
 
-const views: MetricView[] = ["cpu", "memory", "weather", "clock", "bitcoin", "face"];
 window.setInterval(() => {
+  const views = activeViews();
   metricView = views[(views.indexOf(metricView) + 1) % views.length];
 }, 4000);
 
+loadHalSettings();
 refreshWeather();
 window.setInterval(refreshWeather, 30 * 60 * 1000);
 loadBitcoinCache();

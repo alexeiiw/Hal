@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.1.0
+
+- Añade `/inventory` para consultar vistas y modos disponibles desde Telegram.
+- Añade `/task` y una vista de tarea prioritaria con mascota e insignia.
+- Simplifica la mascota normal y mejora los modos developer, focus y relax.
+
+## 1.0.1
+
+- Añade `/off hal` para cerrar HAL desde el chat autorizado de Telegram.
+
+## 1.0.0
+
+- Añade control desde Telegram para modos, vistas activas y frase de la mascota.
+- Añade emparejamiento del primer chat mediante `/pair` y almacenamiento local del token fuera del proyecto.
+- Añade variantes de mascota developer, focus y relax en SVG.
+
 ## 0.9.0
 
 - Añade la vista final de mascota HAL con un SVG original de bajo consumo.

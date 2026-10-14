@@ -49,7 +49,8 @@ output {
 .weather-icon,
 .hal-clock,
 .btc-icon,
-.hal-face {
+.hal-face,
+.task-face {
   grid-area: 1 / 1;
 }
 
@@ -117,6 +118,36 @@ output {
   transition: opacity 140ms ease;
 }
 
+.task-face {
+  place-self: center;
+  width: 112px;
+  height: 76px;
+  overflow: visible;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.task-shell {
+  fill: color-mix(in srgb, #dcfce7 88%, var(--bar-color));
+  stroke: var(--bar-color);
+  stroke-width: 2;
+  filter: drop-shadow(0 0 5px var(--glow)) drop-shadow(0 0 10px var(--glow));
+}
+
+.task-eye {
+  fill: #07110b;
+  filter: drop-shadow(0 0 3px var(--glow));
+}
+
+.task-badge {
+  fill: #f59e0b;
+  stroke: #fef3c7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.85));
+}
+
 .face-shell {
   fill: color-mix(in srgb, #dcfce7 88%, var(--bar-color));
   stroke: var(--bar-color);
@@ -124,24 +155,42 @@ output {
   filter: drop-shadow(0 0 5px var(--glow)) drop-shadow(0 0 10px var(--glow));
 }
 
+.face-hood,
+.face-glasses,
+.face-headphones,
+.face-headband {
+  opacity: 0;
+}
+
+.face-hood {
+  fill: #0f172a;
+  stroke: #22d3ee;
+  stroke-width: 2;
+  filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.7));
+}
+
+.face-glasses circle,
+.face-glasses path,
+.face-headphones path,
+.face-headband {
+  fill: none;
+  stroke: var(--bar-color);
+  stroke-linecap: round;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 4px rgba(96, 165, 250, 0.75));
+}
+
 .face-eye {
   fill: #07110b;
   filter: drop-shadow(0 0 3px var(--glow));
 }
 
-.face-antenna,
-.face-node,
 .face-status {
   fill: none;
   stroke: var(--bar-color);
   stroke-linecap: round;
   stroke-width: 2;
   filter: drop-shadow(0 0 3px var(--glow));
-}
-
-.face-sensor {
-  fill: var(--bar-color);
-  filter: drop-shadow(0 0 4px var(--glow));
 }
 
 .btc-icon circle,
@@ -270,6 +319,36 @@ output {
 }
 
 #hal.face-view .hal-face {
+  opacity: 1;
+}
+
+#hal.task-view .equalizer {
+  opacity: 0;
+}
+
+#hal.task-view .task-face {
+  opacity: 1;
+}
+
+#hal[data-mode="developer"]:not(.overloaded):not(.busy) {
+  --bar-color: #22d3ee;
+  --glow: rgba(34, 211, 238, 0.78);
+}
+
+#hal[data-mode="focus"]:not(.overloaded):not(.busy) {
+  --bar-color: #60a5fa;
+  --glow: rgba(96, 165, 250, 0.78);
+}
+
+#hal[data-mode="relax"]:not(.overloaded):not(.busy) {
+  --bar-color: #c084fc;
+  --glow: rgba(192, 132, 252, 0.78);
+}
+
+#hal[data-mode="developer"] .face-hood,
+#hal[data-mode="focus"] .face-glasses,
+#hal[data-mode="relax"] .face-headphones,
+#hal[data-mode="relax"] .face-headband {
   opacity: 1;
 }
 
