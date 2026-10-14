@@ -12,7 +12,7 @@ const clockMinute = document.querySelector<SVGPathElement>("#clock-minute");
 type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task";
 type WeatherKind = "clear" | "cloud" | "fog" | "rain" | "snow" | "storm";
 type BitcoinQuote = { price: number; previousPrice: number | null; updatedAt: number };
-type HalMode = "normal" | "developer" | "focus" | "relax";
+type HalMode = "normal" | "developer" | "focus" | "relax" | "happy";
 type ViewChange = { view: MetricView; enabled: boolean };
 
 const bitcoinCacheKey = "hal-bitcoin-usd";
@@ -39,6 +39,8 @@ let lastClockMinute = "";
 let halMode: HalMode = "normal";
 let phrase: string | null = null;
 let task: string | null = null;
+let notice: string | null = null;
+let noticeTimeout = 0;
 let enabledViews: Record<MetricView, boolean> = {
   cpu: true,
   memory: true,
@@ -62,7 +64,7 @@ function loadHalSettings(): void {
       enabledViews?: Partial<Record<MetricView, boolean>>;
     };
 
-    if (["normal", "developer", "focus", "relax"].includes(saved.mode ?? "")) {
+    if (["normal", "developer", "focus", "relax", "happy"].includes(saved.mode ?? "")) {
       halMode = saved.mode!;
     }
     phrase = typeof saved.phrase === "string" ? saved.phrase : null;
@@ -161,6 +163,10 @@ function currentMetric(): {
   busyAt: number;
   criticalAt: number;
 } {
+  if (notice) {
+    return { display: `AVISO ${notice}`, value: 0, busyAt: 101, criticalAt: 102 };
+  }
+
   if (metricView === "cpu") {
     return { display: `CPU ${cpu.toFixed(1)}%`, value: cpu, busyAt: 40, criticalAt: 70 };
   }
@@ -220,7 +226,7 @@ function animateBars(): void {
   const globalTempo = overloaded ? 110 : busy ? 220 : 460;
   const waveTempo = opencodeCpu >= 10 ? 80 : opencodeCpu >= 2 ? 170 : 440;
   const showOpenCodeWave = metricView === "cpu" && opencodeActive;
-  const staticView = metricView === "clock" || metricView === "bitcoin" || metricView === "face" || metricView === "task" || (metricView === "weather" && weather !== null);
+  const staticView = notice !== null || metricView === "clock" || metricView === "bitcoin" || metricView === "face" || metricView === "task" || (metricView === "weather" && weather !== null);
   const tempo = staticView ? 1000 : showOpenCodeWave ? waveTempo : globalTempo;
 
   root!.classList.toggle("overloaded", overloaded);
@@ -232,6 +238,7 @@ function animateBars(): void {
   root!.classList.toggle("btc-view", metricView === "bitcoin");
   root!.classList.toggle("face-view", metricView === "face");
   root!.classList.toggle("task-view", metricView === "task");
+  root!.classList.toggle("notice-active", notice !== null);
   const quote = bitcoinQuote();
   root!.classList.toggle("btc-alert", metricView === "bitcoin" && !!quote && quote.price <= bitcoinBuyThreshold);
   root!.classList.toggle("btc-up", metricView === "bitcoin" && !!quote && bitcoinDirection(quote) === "up");
@@ -282,7 +289,7 @@ void listen<number>("evento-opencode-cpu", (event) => {
 });
 
 void listen<HalMode>("evento-modo", (event) => {
-  if (["normal", "developer", "focus", "relax"].includes(event.payload)) {
+  if (["normal", "developer", "focus", "relax", "happy"].includes(event.payload)) {
     halMode = event.payload;
     root!.dataset.mode = halMode;
     saveHalSettings();
@@ -309,6 +316,14 @@ void listen<string | null>("evento-tarea", (event) => {
   task = event.payload;
   if (metricView === "task" && !task) metricView = activeViews()[0];
   saveHalSettings();
+});
+
+void listen<string>("evento-aviso", (event) => {
+  notice = event.payload;
+  window.clearTimeout(noticeTimeout);
+  noticeTimeout = window.setTimeout(() => {
+    notice = null;
+  }, 30_000);
 });
 
 async function loadWeather(position: GeolocationPosition): Promise<void> {

@@ -73,3 +73,5 @@
 - [x] Añadidos `/inventory`, `/task` y vista de tarea prioritaria.
 - [x] Refinadas las caras por modo: normal limpia, capucha developer, lentes focus y audifonos relax.
 - [x] Actualizada la version local a `1.1.0`; pendiente de validacion y publicacion por indicacion del usuario.
+- [x] Añadidos modo happy, avisos persistentes, alerta remota de BTC y estado remoto de HAL.
+- [x] Actualizada la version local a `1.2.0`; pendiente de validacion y publicacion por indicacion del usuario.

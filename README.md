@@ -1,4 +1,4 @@
-# HAL 1.1.0
+# HAL 1.2.0
 
 HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, clima, hora, Bitcoin, tarea prioritaria y una mascota HAL en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
 
@@ -31,7 +31,7 @@ HAL consulta BTC/USD en CoinGecko al iniciar y cada seis horas. Guarda localment
 
 ## Mascota HAL
 
-La ultima vista del ciclo muestra una mascota SVG estatica con carcasa ovalada y ojos. No descarga imagenes ni ejecuta animaciones adicionales; su lectura es `HAL EN LINEA`. Los modos usan capucha para developer, lentes para focus y audifonos completos para relax.
+La ultima vista del ciclo muestra una mascota SVG estatica con carcasa ovalada y ojos. No descarga imagenes ni ejecuta animaciones adicionales; su lectura es `HAL EN LINEA`. Los modos usan capucha para developer, lentes para focus, audifonos completos para relax y sonrisa amarilla para happy.
 
 ## Telegram
 
@@ -50,7 +50,7 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | Comando | Funcion |
 | --- | --- |
 | `/pair` | Vincula el primer chat autorizado o confirma la vinculacion actual |
-| `/inventory` | Lista las vistas y modos disponibles |
+| `/inventory` | Muestra las vistas activas y desactivadas, junto a los modos disponibles |
 | `/mode normal` | Paleta y cara original de HAL |
 | `/mode developer` | Capucha y acentos cian |
 | `/mode focus` | Lentes y acentos azules |
@@ -62,9 +62,13 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/phrase clear` | Restaura `HAL EN LINEA` |
 | `/task texto` | Define la tarea prioritaria de hasta 30 caracteres |
 | `/task clear` | Elimina la tarea y su vista del ciclo |
+| `/aviso 10` | Programa un aviso dentro de 10 minutos |
+| `/aviso 08:00` | Programa un aviso para la proxima hora local 08:00 |
+| `/aviso list` | Lista los avisos activos |
+| `/aviso cancel` | Cancela todos los avisos |
 | `/status` | Confirma que el bot esta vinculado |
 
-Los modos, las vistas activas y la frase se guardan localmente en HAL y se conservan al reiniciar. Telegram solo se consulta para recibir comandos; si no hay token o red, HAL sigue funcionando normalmente.
+Los modos, las vistas activas, la frase, la tarea y los avisos se guardan localmente en HAL y se conservan al reiniciar. Al cumplirse un aviso, HAL muestra una alerta visual durante 30 segundos y Telegram recibe una confirmacion. `/status` informa CPU, RAM, BTC, modo, tarea y vistas activas. Telegram solo se consulta para recibir comandos; si no hay token o red, HAL sigue funcionando normalmente.
 
 ## Modo OpenCode
 
@@ -94,8 +98,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.1.0_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_1.1.0_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.2.0_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_1.2.0_x64_en-US.msi`
 
 ## Desarrollo
 
@@ -114,8 +118,8 @@ npm run tauri build
 
 ## Arquitectura
 
-- `src-tauri/src/main.rs`: mide CPU, RAM, procesos y OpenCode una vez por segundo; recibe comandos de Telegram.
+- `src-tauri/src/main.rs`: mide CPU, RAM, procesos y OpenCode una vez por segundo; recibe comandos, mantiene avisos y envia alertas de Telegram.
 - `src/main.ts`: alterna CPU, RAM, clima, reloj, Bitcoin, mascota y tarea; conserva modos, vistas, frase y tarea localmente.
-- `src/style.css`: define el HUD, iconos, reloj analogico SVG, mascota por modo, tarea y estado visual de Bitcoin.
+- `src/style.css`: define el HUD, iconos, reloj analogico SVG, mascota por modo, tarea, avisos y estado visual de Bitcoin.
 
 HAL mide la CPU global deliberadamente. La deteccion de OpenCode solo modifica el patron y frecuencia de animacion; no registra actividad, no analiza contenido y no cambia la metrica mostrada. Para el clima, el navegador solicita ubicacion y envia las coordenadas a Open-Meteo; HAL no las guarda. El reloj no realiza llamadas ni crea temporizadores propios: reutiliza el ciclo visual y cambia sus agujas solo al cambiar el minuto. Para Bitcoin, HAL guarda solo el precio, el precio anterior y la fecha de consulta en el almacenamiento local.

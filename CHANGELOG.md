@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+
+- Añade el modo happy y corrige la distribucion de los audifonos de la mascota relax.
+- Añade avisos persistentes por Telegram con alerta visual de 30 segundos y confirmacion remota.
+- Añade alerta remota de BTC al llegar a $76,000 USD o menos.
+- Amplia `/inventory` y `/status` con el estado de vistas y sistema.
+
 ## 1.1.0
 
 - Añade `/inventory` para consultar vistas y modos disponibles desde Telegram.

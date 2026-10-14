@@ -1,7 +1,14 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{env, fs, path::PathBuf, thread, time::Duration};
+use std::{
+    env, fs,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+    thread,
+    time::Duration,
+};
 
+use chrono::{Duration as ChronoDuration, Local, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 use sysinfo::{ProcessesToUpdate, System};
 use tauri::{Emitter, Manager, PhysicalPosition, Position};
@@ -12,6 +19,27 @@ struct TelegramConfig {
     token: String,
     chat_id: Option<i64>,
     offset: Option<i64>,
+    mode: String,
+    task: Option<String>,
+    disabled_views: Vec<String>,
+}
+
+#[derive(Clone, Default)]
+struct SystemStatus {
+    cpu: f32,
+    memory: f32,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+struct Reminder {
+    label: String,
+    due_at: i64,
+}
+
+#[derive(Default, Deserialize, Serialize)]
+#[serde(default)]
+struct ReminderStore {
+    reminders: Vec<Reminder>,
 }
 
 #[derive(Deserialize)]
@@ -43,12 +71,29 @@ struct ViewChange {
     enabled: bool,
 }
 
+#[derive(Deserialize)]
+struct BitcoinPriceResponse {
+    bitcoin: Option<BitcoinPrice>,
+}
+
+#[derive(Deserialize)]
+struct BitcoinPrice {
+    usd: Option<f64>,
+}
+
 fn telegram_config_path() -> PathBuf {
     env::var_os("APPDATA")
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("."))
         .join("HAL")
         .join("telegram.json")
+}
+
+fn reminders_path() -> PathBuf {
+    telegram_config_path()
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."))
+        .join("reminders.json")
 }
 
 fn load_telegram_config(path: &PathBuf) -> Option<TelegramConfig> {
@@ -70,6 +115,19 @@ fn save_telegram_config(path: &PathBuf, config: &TelegramConfig) {
     }
 }
 
+fn load_reminders(path: &PathBuf) -> ReminderStore {
+    fs::read_to_string(path)
+        .ok()
+        .and_then(|content| serde_json::from_str(&content).ok())
+        .unwrap_or_default()
+}
+
+fn save_reminders(path: &PathBuf, store: &ReminderStore) {
+    if let Ok(content) = serde_json::to_string_pretty(store) {
+        let _ = fs::write(path, content);
+    }
+}
+
 async fn telegram_send(client: &reqwest::Client, token: &str, chat_id: i64, text: &str) {
     let _ = client
         .post(format!("https://api.telegram.org/bot{token}/sendMessage"))
@@ -78,10 +136,105 @@ async fn telegram_send(client: &reqwest::Client, token: &str, chat_id: i64, text
         .await;
 }
 
+async fn bitcoin_price(client: &reqwest::Client) -> Option<f64> {
+    let response = client
+        .get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd")
+        .send()
+        .await
+        .ok()?
+        .error_for_status()
+        .ok()?;
+    response
+        .json::<BitcoinPriceResponse>()
+        .await
+        .ok()?
+        .bitcoin?
+        .usd
+}
+
+fn inventory_status(config: &TelegramConfig) -> String {
+    let views = ["cpu", "ram", "clima", "reloj", "btc", "cara", "tarea"];
+    let active = views
+        .iter()
+        .filter(|view| {
+            let name = **view;
+            let internal = match name {
+                "ram" => "memory",
+                "clima" => "weather",
+                "reloj" => "clock",
+                "btc" => "bitcoin",
+                "cara" => "face",
+                "tarea" => "task",
+                view => view,
+            };
+            !config
+                .disabled_views
+                .iter()
+                .any(|disabled| disabled == internal)
+        })
+        .copied()
+        .collect::<Vec<_>>()
+        .join(", ");
+    let disabled = if config.disabled_views.is_empty() {
+        "ninguna".to_string()
+    } else {
+        config.disabled_views.join(", ")
+    };
+    format!("Activas: {active}\nDesactivadas: {disabled}")
+}
+
+fn parse_reminder(value: &str) -> Result<Reminder, String> {
+    if let Ok(minutes) = value.parse::<i64>() {
+        if !(1..=1_440).contains(&minutes) {
+            return Err("El aviso debe estar entre 1 y 1440 minutos.".to_string());
+        }
+        return Ok(Reminder {
+            label: format!("{minutes} MIN"),
+            due_at: (Utc::now() + ChronoDuration::minutes(minutes)).timestamp(),
+        });
+    }
+
+    let Some((hour, minute)) = value.split_once(':') else {
+        return Err("Usa /aviso 10 o /aviso 08:00.".to_string());
+    };
+    let (Ok(hour), Ok(minute)) = (hour.parse::<u32>(), minute.parse::<u32>()) else {
+        return Err("La hora debe tener formato HH:MM.".to_string());
+    };
+    if hour > 23 || minute > 59 {
+        return Err("La hora debe estar entre 00:00 y 23:59.".to_string());
+    }
+
+    let now = Local::now();
+    let mut due = Local
+        .from_local_datetime(
+            &now.date_naive()
+                .and_hms_opt(hour, minute, 0)
+                .ok_or_else(|| "La hora no es válida.".to_string())?,
+        )
+        .single()
+        .ok_or_else(|| "No se pudo interpretar la hora local.".to_string())?;
+    if due <= now {
+        due = Local
+            .from_local_datetime(
+                &(now.date_naive() + ChronoDuration::days(1))
+                    .and_hms_opt(hour, minute, 0)
+                    .ok_or_else(|| "La hora no es válida.".to_string())?,
+            )
+            .single()
+            .ok_or_else(|| "No se pudo interpretar la hora local.".to_string())?;
+    }
+
+    Ok(Reminder {
+        label: format!("{hour:02}:{minute:02}"),
+        due_at: due.timestamp(),
+    })
+}
+
 async fn handle_telegram_command(
     app: &tauri::AppHandle,
     client: &reqwest::Client,
     config: &mut TelegramConfig,
+    system_status: &Arc<Mutex<SystemStatus>>,
     message: TelegramMessage,
 ) {
     let chat_id = message.chat.id;
@@ -133,38 +286,94 @@ async fn handle_telegram_command(
     }
 
     let response = if text == "/help" || text == "/start" {
-        "Comandos:\n/pair\n/inventory\n/mode normal|developer|focus|relax\n/on nombre\n/off nombre\n/off hal\n/phrase texto\n/task texto\n/status"
+        "Comandos:\n/pair\n/inventory\n/mode normal|developer|focus|relax|happy\n/on nombre\n/off nombre\n/off hal\n/phrase texto\n/task texto\n/aviso 10 o 08:00\n/aviso list|cancel\n/status"
             .to_string()
     } else if text == "/inventory" {
-        "Vistas disponibles:\ncpu, ram, clima, reloj, btc, cara, tarea\nModos: normal, developer, focus, relax\nUsa /on nombre o /off nombre."
-            .to_string()
+        format!(
+            "{}\nModos: normal, developer, focus, relax, happy\nUsa /on nombre o /off nombre.",
+            inventory_status(config)
+        )
     } else if text == "/status" {
-        "HAL vinculado y esperando comandos.".to_string()
+        let status = system_status
+            .lock()
+            .map(|status| status.clone())
+            .unwrap_or_default();
+        let bitcoin = bitcoin_price(client)
+            .await
+            .map(|price| format!("BTC ${price:.0}"))
+            .unwrap_or_else(|| "BTC NO DISP.".to_string());
+        let task = config.task.as_deref().unwrap_or("sin tarea");
+        format!(
+            "CPU {:.1}% | RAM {:.1}%\n{}\nModo: {}\nTarea: {}\n{}",
+            status.cpu,
+            status.memory,
+            bitcoin,
+            if config.mode.is_empty() {
+                "normal"
+            } else {
+                &config.mode
+            },
+            task,
+            inventory_status(config)
+        )
     } else if let Some(mode) = text.strip_prefix("/mode ") {
         match mode.trim() {
-            "normal" | "developer" | "focus" | "relax" => {
+            "normal" | "developer" | "focus" | "relax" | "happy" => {
+                config.mode = mode.trim().to_string();
                 let _ = app.emit("evento-modo", mode.trim());
                 format!("Modo {} activado.", mode.trim())
             }
-            _ => "Modo inválido. Usa normal, developer, focus o relax.".to_string(),
+            _ => "Modo inválido. Usa normal, developer, focus, relax o happy.".to_string(),
         }
     } else if let Some(view) = text.strip_prefix("/on ") {
-        set_view(app, view.trim(), true)
+        set_view(app, config, view.trim(), true)
     } else if let Some(view) = text.strip_prefix("/off ") {
-        set_view(app, view.trim(), false)
+        set_view(app, config, view.trim(), false)
     } else if text == "/task" {
         "Usa /task seguido de una tarea de hasta 30 caracteres.".to_string()
     } else if let Some(task) = text.strip_prefix("/task ") {
         let task = task.trim();
 
         if task == "clear" {
+            config.task = None;
             let _ = app.emit("evento-tarea", Option::<String>::None);
             "Tarea eliminada.".to_string()
         } else if task.is_empty() || task.chars().count() > 30 {
             "La tarea debe tener entre 1 y 30 caracteres.".to_string()
         } else {
+            config.task = Some(task.to_string());
             let _ = app.emit("evento-tarea", Some(task.to_string()));
             "Tarea prioritaria actualizada.".to_string()
+        }
+    } else if text == "/aviso" {
+        "Usa /aviso 10 para minutos o /aviso 08:00 para una hora local.".to_string()
+    } else if text == "/aviso list" {
+        let store = load_reminders(&reminders_path());
+        if store.reminders.is_empty() {
+            "No hay avisos activos.".to_string()
+        } else {
+            let labels = store
+                .reminders
+                .iter()
+                .map(|reminder| reminder.label.as_str())
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("Avisos activos: {labels}")
+        }
+    } else if text == "/aviso cancel" {
+        save_reminders(&reminders_path(), &ReminderStore::default());
+        "Avisos cancelados.".to_string()
+    } else if let Some(value) = text.strip_prefix("/aviso ") {
+        match parse_reminder(value.trim()) {
+            Ok(reminder) => {
+                let path = reminders_path();
+                let mut store = load_reminders(&path);
+                let label = reminder.label.clone();
+                store.reminders.push(reminder);
+                save_reminders(&path, &store);
+                format!("Aviso programado para {label}.")
+            }
+            Err(message) => message,
         }
     } else if let Some(phrase) = text.strip_prefix("/phrase ") {
         let phrase = phrase.trim();
@@ -185,7 +394,12 @@ async fn handle_telegram_command(
     telegram_send(client, &config.token, chat_id, &response).await;
 }
 
-fn set_view(app: &tauri::AppHandle, view: &str, enabled: bool) -> String {
+fn set_view(
+    app: &tauri::AppHandle,
+    config: &mut TelegramConfig,
+    view: &str,
+    enabled: bool,
+) -> String {
     let view = match view {
         "ram" => "memory",
         "clima" => "weather",
@@ -198,6 +412,15 @@ fn set_view(app: &tauri::AppHandle, view: &str, enabled: bool) -> String {
 
     match view {
         "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" => {
+            if enabled {
+                config.disabled_views.retain(|disabled| disabled != view);
+            } else if !config
+                .disabled_views
+                .iter()
+                .any(|disabled| disabled == view)
+            {
+                config.disabled_views.push(view.to_string());
+            }
             let _ = app.emit(
                 "evento-vista",
                 ViewChange {
@@ -215,7 +438,7 @@ fn set_view(app: &tauri::AppHandle, view: &str, enabled: bool) -> String {
     }
 }
 
-async fn run_telegram(app: tauri::AppHandle) {
+async fn run_telegram(app: tauri::AppHandle, system_status: Arc<Mutex<SystemStatus>>) {
     let path = telegram_config_path();
     let Some(mut config) = load_telegram_config(&path) else {
         return;
@@ -256,10 +479,85 @@ async fn run_telegram(app: tauri::AppHandle) {
         for update in updates.result {
             config.offset = Some(update.update_id + 1);
             if let Some(message) = update.message {
-                handle_telegram_command(&app, &client, &mut config, message).await;
+                handle_telegram_command(&app, &client, &mut config, &system_status, message).await;
             }
         }
         save_telegram_config(&path, &config);
+    }
+}
+
+fn run_reminder_watcher(app: tauri::AppHandle) {
+    thread::spawn(move || loop {
+        thread::sleep(Duration::from_secs(5));
+        let path = reminders_path();
+        let mut store = load_reminders(&path);
+        let now = Utc::now().timestamp();
+        let due = store
+            .reminders
+            .iter()
+            .filter(|reminder| reminder.due_at <= now)
+            .cloned()
+            .collect::<Vec<_>>();
+
+        if due.is_empty() {
+            continue;
+        }
+
+        store.reminders.retain(|reminder| reminder.due_at > now);
+        save_reminders(&path, &store);
+
+        for reminder in due {
+            let _ = app.emit("evento-aviso", reminder.label.clone());
+            let config = load_telegram_config(&telegram_config_path());
+            if let Some(config) = config {
+                if let Some(chat_id) = config.chat_id {
+                    if !config.token.is_empty() {
+                        let token = config.token;
+                        let label = reminder.label;
+                        tauri::async_runtime::spawn(async move {
+                            telegram_send(
+                                &reqwest::Client::new(),
+                                &token,
+                                chat_id,
+                                &format!("Aviso cumplido: {label}"),
+                            )
+                            .await;
+                        });
+                    }
+                }
+            }
+        }
+    });
+}
+
+async fn run_bitcoin_alert(app: tauri::AppHandle) {
+    let client = reqwest::Client::new();
+    let mut was_below_threshold = false;
+
+    loop {
+        if let Some(price) = bitcoin_price(&client).await {
+            let below_threshold = price <= 76_000.0;
+            if below_threshold && !was_below_threshold {
+                let config = load_telegram_config(&telegram_config_path());
+                if let Some(config) = config {
+                    if let Some(chat_id) = config.chat_id {
+                        if !config.token.is_empty() {
+                            telegram_send(
+                                &client,
+                                &config.token,
+                                chat_id,
+                                &format!("ALERTA BTC: ${price:.0} esta en o bajo $76000."),
+                            )
+                            .await;
+                        }
+                    }
+                }
+                let _ = app.emit("evento-btc-alerta", true);
+            }
+            was_below_threshold = below_threshold;
+        }
+
+        tokio::time::sleep(Duration::from_secs(6 * 60 * 60)).await;
     }
 }
 
@@ -280,6 +578,8 @@ fn main() {
                     .expect("failed to position HAL");
             }
 
+            let system_status = Arc::new(Mutex::new(SystemStatus::default()));
+            let monitor_status = system_status.clone();
             let app_handle = app.handle().clone();
             thread::spawn(move || {
                 let mut system = System::new_all();
@@ -296,6 +596,10 @@ fn main() {
                     } else {
                         system.used_memory() as f32 / system.total_memory() as f32 * 100.0
                     };
+                    if let Ok(mut status) = monitor_status.lock() {
+                        status.cpu = cpu;
+                        status.memory = memory;
+                    }
                     let (opencode_active, opencode_cpu) = system
                         .processes()
                         .values()
@@ -329,7 +633,9 @@ fn main() {
                 }
             });
 
-            tauri::async_runtime::spawn(run_telegram(app.handle().clone()));
+            tauri::async_runtime::spawn(run_telegram(app.handle().clone(), system_status));
+            run_reminder_watcher(app.handle().clone());
+            tauri::async_runtime::spawn(run_bitcoin_alert(app.handle().clone()));
 
             Ok(())
         })

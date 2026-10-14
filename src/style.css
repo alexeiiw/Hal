@@ -158,7 +158,8 @@ output {
 .face-hood,
 .face-glasses,
 .face-headphones,
-.face-headband {
+.face-headband,
+.face-smile {
   opacity: 0;
 }
 
@@ -183,6 +184,14 @@ output {
 .face-eye {
   fill: #07110b;
   filter: drop-shadow(0 0 3px var(--glow));
+}
+
+.face-smile {
+  fill: none;
+  stroke: #facc15;
+  stroke-linecap: round;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.85));
 }
 
 .face-status {
@@ -330,6 +339,38 @@ output {
   opacity: 1;
 }
 
+#hal.notice-active .equalizer,
+#hal.notice-active .weather-icon,
+#hal.notice-active .hal-clock,
+#hal.notice-active .btc-icon,
+#hal.notice-active .task-face {
+  opacity: 0;
+}
+
+#hal.notice-active .hal-face {
+  opacity: 1;
+  animation: reminder-motion 1.2s ease-in-out infinite;
+}
+
+#hal.notice-active output {
+  color: #facc15;
+}
+
+@keyframes reminder-motion {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  25% {
+    transform: translateY(-5px) rotate(-3deg);
+  }
+
+  75% {
+    transform: translateY(-2px) rotate(3deg);
+  }
+}
+
 #hal[data-mode="developer"]:not(.overloaded):not(.busy) {
   --bar-color: #22d3ee;
   --glow: rgba(34, 211, 238, 0.78);
@@ -345,10 +386,16 @@ output {
   --glow: rgba(192, 132, 252, 0.78);
 }
 
+#hal[data-mode="happy"]:not(.overloaded):not(.busy) {
+  --bar-color: #facc15;
+  --glow: rgba(250, 204, 21, 0.78);
+}
+
 #hal[data-mode="developer"] .face-hood,
 #hal[data-mode="focus"] .face-glasses,
 #hal[data-mode="relax"] .face-headphones,
-#hal[data-mode="relax"] .face-headband {
+#hal[data-mode="relax"] .face-headband,
+#hal[data-mode="happy"] .face-smile {
   opacity: 1;
 }
 
