@@ -13,9 +13,15 @@ const clockMinute = document.querySelector<SVGPathElement>("#clock-minute");
 const gaugeArc = document.querySelector<SVGCircleElement>("#gauge-arc");
 const gaugeValue = document.querySelector<HTMLElement>("#gauge-value");
 const photoImg = document.querySelector<HTMLImageElement>("#photo-img");
-type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo";
+const netLine = document.querySelector<SVGPathElement>("#net-line");
+const netUpLine = document.querySelector<SVGPathElement>("#net-up-line");
+const netArea = document.querySelector<SVGPathElement>("#net-area");
+const netDownEl = document.querySelector<HTMLElement>("#net-down");
+const netUpEl = document.querySelector<HTMLElement>("#net-up-num");
+type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo" | "red";
 type WeatherKind = "clear" | "cloud" | "fog" | "rain" | "snow" | "storm";
 type BitcoinQuote = { price: number; previousPrice: number | null; updatedAt: number };
+type NetworkSample = { down: number; up: number };
 type HalMode = "normal" | "developer" | "focus" | "relax" | "happy";
 type HalTheme = "clasico" | "menta" | "durazno" | "lavanda" | "cian" | "ambar";
 type ViewChange = { view: MetricView; enabled: boolean };
@@ -26,10 +32,10 @@ const bitcoinCacheMaxAgeMs = 24 * 60 * 60 * 1000;
 const bitcoinBuyThreshold = 76_000;
 const halSettingsKey = "hal-settings";
 const halClockResetKey = "hal-clock-once";
-const allViews: MetricView[] = ["cpu", "memory", "weather", "clock", "bitcoin", "face", "task", "photo"];
+const allViews: MetricView[] = ["cpu", "memory", "red", "weather", "clock", "bitcoin", "face", "task", "photo"];
 const allThemes: HalTheme[] = ["clasico", "menta", "durazno", "lavanda", "cian", "ambar"];
 
-if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !photoImg || bars.length !== 5) {
+if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !photoImg || !netLine || !netUpLine || !netArea || !netDownEl || !netUpEl || bars.length !== 5) {
   throw new Error("La interfaz HAL no se pudo inicializar.");
 }
 
@@ -49,9 +55,12 @@ let phrase: string | null = null;
 let task: string | null = null;
 let notice: string | null = null;
 let noticeTimeout = 0;
+let netDownRate = 0;
+let netUpRate = 0;
 let enabledViews: Record<MetricView, boolean> = {
   cpu: true,
   memory: true,
+  red: true,
   weather: true,
   clock: true,
   bitcoin: true,
@@ -186,6 +195,41 @@ function updateGauge(): void {
   gaugeValue!.textContent = memory.toFixed(0);
 }
 
+const netHistory: NetworkSample[] = [];
+const netHistorySize = 58;
+const netWidth = 116;
+const netHeight = 70;
+
+function formatRate(bytes: number): string {
+  const mb = bytes / 1_048_576;
+  if (mb >= 10) return `${mb.toFixed(0)}M`;
+  if (mb >= 1) return `${mb.toFixed(1)}M`;
+  return `${(bytes / 1024).toFixed(0)}K`;
+}
+
+function networkPath(values: number[], maxRate: number): string {
+  const step = values.length > 1 ? netWidth / (values.length - 1) : netWidth;
+  return values
+    .map((value, index) => {
+      const y = netHeight - 2 - Math.min(1, value / maxRate) * (netHeight - 6);
+      return `${index === 0 ? "M" : "L"}${(index * step).toFixed(2)} ${y.toFixed(2)}`;
+    })
+    .join(" ");
+}
+
+function updateNetwork(): void {
+  netDownEl!.textContent = formatRate(netDownRate);
+  netUpEl!.textContent = formatRate(netUpRate);
+
+  const maxRate = Math.max(1, ...netHistory.map((sample) => sample.down));
+  const downPath = networkPath(netHistory.map((sample) => sample.down), maxRate);
+  const upPath = networkPath(netHistory.map((sample) => sample.up), maxRate);
+
+  netLine!.setAttribute("d", downPath);
+  netUpLine!.setAttribute("d", upPath);
+  netArea!.setAttribute("d", `${downPath} L${netWidth} ${netHeight} L0 ${netHeight} Z`);
+}
+
 const photoPickKey = "hal-photo-pick";
 const photoRefreshMs = 24 * 60 * 60 * 1000;
 const defaultPhoto =
@@ -302,6 +346,15 @@ function currentMetric(): {
     return { display: "HAL FOTOS", value: 0, busyAt: 101, criticalAt: 102 };
   }
 
+  if (metricView === "red") {
+    return {
+      display: `RED ↓${formatRate(netDownRate)} ↑${formatRate(netUpRate)}`,
+      value: 0,
+      busyAt: 101,
+      criticalAt: 102,
+    };
+  }
+
   return weather
     ? {
         display: `${weather.temperature.toFixed(0)} C ${weatherLabel(weather.code)}`,
@@ -326,7 +379,7 @@ function animateBars(): void {
   const globalTempo = overloaded ? 110 : busy ? 220 : 460;
   const waveTempo = Math.max(60, 440 / (1 + opencodeCpu * 0.15));
   const showOpenCodeWave = metricView === "cpu" && opencodeActive;
-  const staticView = notice !== null || metricView === "clock" || metricView === "bitcoin" || metricView === "face" || metricView === "task" || metricView === "memory" || metricView === "photo" || (metricView === "weather" && weather !== null);
+  const staticView = notice !== null || metricView === "clock" || metricView === "bitcoin" || metricView === "face" || metricView === "task" || metricView === "memory" || metricView === "photo" || metricView === "red" || (metricView === "weather" && weather !== null);
   const tempo = staticView ? 1000 : showOpenCodeWave ? waveTempo : globalTempo;
 
   root!.classList.toggle("overloaded", overloaded);
@@ -339,6 +392,7 @@ function animateBars(): void {
   root!.classList.toggle("face-view", metricView === "face");
   root!.classList.toggle("task-view", metricView === "task");
   root!.classList.toggle("photo-view", metricView === "photo");
+  root!.classList.toggle("red-view", metricView === "red");
   root!.classList.toggle("notice-active", notice !== null);
   const quote = bitcoinQuote();
   root!.classList.toggle("btc-alert", metricView === "bitcoin" && !!quote && quote.price <= bitcoinBuyThreshold);
@@ -388,6 +442,14 @@ void listen<boolean>("evento-opencode", (event) => {
 
 void listen<number>("evento-opencode-cpu", (event) => {
   opencodeCpu = Math.max(0, event.payload);
+});
+
+void listen<NetworkSample>("evento-red", (event) => {
+  netDownRate = Math.max(0, event.payload.down);
+  netUpRate = Math.max(0, event.payload.up);
+  netHistory.push({ down: netDownRate, up: netUpRate });
+  if (netHistory.length > netHistorySize) netHistory.shift();
+  updateNetwork();
 });
 
 void listen<HalMode>("evento-modo", (event) => {

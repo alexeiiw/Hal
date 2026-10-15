@@ -11,7 +11,7 @@ use std::{
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use chrono::{Duration as ChronoDuration, Local, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
-use sysinfo::{ProcessesToUpdate, System};
+use sysinfo::{Networks, ProcessesToUpdate, System};
 use tauri::{Emitter, Manager, PhysicalPosition, Position};
 
 #[derive(Default, Deserialize, Serialize)]
@@ -35,6 +35,12 @@ struct SystemStatus {
 #[derive(Clone, Default)]
 struct BitcoinStatus {
     price: Option<f64>,
+}
+
+#[derive(Clone, Serialize)]
+struct NetworkSample {
+    down: f64,
+    up: f64,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -238,7 +244,7 @@ async fn bitcoin_price(client: &reqwest::Client) -> Option<f64> {
 }
 
 fn inventory_status(config: &TelegramConfig) -> String {
-    let views = ["cpu", "ram", "clima", "reloj", "btc", "cara", "tarea", "foto"];
+    let views = ["cpu", "ram", "red", "clima", "reloj", "btc", "cara", "tarea", "foto"];
     let active = views
         .iter()
         .filter(|view| {
@@ -373,7 +379,7 @@ async fn handle_telegram_command(
     }
 
     let response = if text == "/help" || text == "/start" {
-        "Comandos:\n/pair\n/inventory\n/mode normal|developer|focus|relax|happy\n/theme clasico|menta|durazno|lavanda|cian|ambar\n/on nombre (cpu, ram, clima, reloj, btc, cara, tarea, foto)\n/off nombre\n/off hal\n/phrase texto\n/task texto\n/aviso 10 o 08:00\n/aviso list|cancel\n/status"
+        "Comandos:\n/pair\n/inventory\n/mode normal|developer|focus|relax|happy\n/theme clasico|menta|durazno|lavanda|cian|ambar\n/on nombre (cpu, ram, red, clima, reloj, btc, cara, tarea, foto)\n/off nombre\n/off hal\n/phrase texto\n/task texto\n/aviso 10 o 08:00\n/aviso list|cancel\n/status"
             .to_string()
     } else if text == "/inventory" {
         format!(
@@ -523,11 +529,12 @@ fn set_view(
         "cara" => "face",
         "tarea" => "task",
         "foto" => "photo",
+        "net" | "banda" => "red",
         view => view,
     };
 
     match view {
-        "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo" => {
+        "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo" | "red" => {
             if enabled {
                 config.disabled_views.retain(|disabled| disabled != view);
             } else if !config
@@ -550,7 +557,7 @@ fn set_view(
                 if enabled { "activada" } else { "desactivada" }
             )
         }
-        _ => "Vista inválida. Usa cpu, ram, clima, reloj, btc, cara, tarea o foto.".to_string(),
+        _ => "Vista inválida. Usa cpu, ram, clima, reloj, btc, cara, tarea, foto o red.".to_string(),
     }
 }
 
@@ -569,7 +576,7 @@ async fn run_telegram(
     }
 
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.3")
+        .user_agent("HAL/1.4")
         .build()
         .expect("failed to create Telegram client");
 
@@ -669,7 +676,7 @@ fn run_reminder_watcher(app: tauri::AppHandle) {
 
 async fn run_bitcoin_alert(app: tauri::AppHandle, bitcoin_status: Arc<Mutex<BitcoinStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.3")
+        .user_agent("HAL/1.4")
         .build()
         .expect("failed to create Bitcoin client");
     let mut was_below_threshold = false;
@@ -729,6 +736,7 @@ fn main() {
             thread::spawn(move || {
                 let mut system = System::new_all();
                 system.refresh_cpu_all();
+                let mut networks = Networks::new_with_refreshed_list();
 
                 loop {
                     thread::sleep(Duration::from_secs(1));
@@ -771,6 +779,26 @@ fn main() {
 
                     if app_handle
                         .emit("evento-opencode-cpu", opencode_cpu)
+                        .is_err()
+                    {
+                        break;
+                    }
+
+                    networks.refresh(true);
+                    let mut down = 0u64;
+                    let mut up = 0u64;
+                    for (_name, data) in &networks {
+                        down += data.received();
+                        up += data.transmitted();
+                    }
+                    if app_handle
+                        .emit(
+                            "evento-red",
+                            NetworkSample {
+                                down: down as f64,
+                                up: up as f64,
+                            },
+                        )
                         .is_err()
                     {
                         break;

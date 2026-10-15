@@ -1,5 +1,13 @@
 # Avance de HAL
 
+## 2026-10-15
+
+- [x] Añadida la vista de red con ancho de banda de descarga y subida usando `sysinfo` (`Networks`), sin dependencias nuevas.
+- [x] Añadido el evento `evento-red`, el comando `/on red` (alias `net`/`banda`) y el widget con dos ondas y lectura en MB/s.
+- [x] Cambiado el aviso/alarma para mostrar el ojo rojo de HAL con pulso y parpadeo durante 30 segundos.
+- [x] Actualizada la version local a `1.4.0`, README y changelog.
+- [x] Compilado el ejecutable, ejecutado HAL y publicado en GitHub.
+
 ## 2026-10-02
 
 - [x] Verificada la carpeta de trabajo: estaba vacia.

@@ -1,6 +1,6 @@
-# HAL 1.3.0
+# HAL 1.4.0
 
-HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, clima, hora, Bitcoin, tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
+HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
 
 ## Comportamiento
 
@@ -8,7 +8,7 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, cl
 - Permanece sobre otras ventanas, pero los clics atraviesan HAL hacia la aplicacion de debajo.
 - Se coloca abajo a la derecha del area util del monitor.
 - Se muestra como un HUD sin borde, fondo ni panel de cristal para dar prioridad a los iconos.
-- Alterna CPU global, RAM principal, clima, reloj analogico, Bitcoin, mascota HAL y foto cada cuatro segundos; añade tarea prioritaria si esta definida.
+- Alterna CPU global, RAM principal, red, clima, reloj analogico, Bitcoin, mascota HAL y foto cada cuatro segundos; añade tarea prioritaria si esta definida.
 - Muestra la RAM como un anillo de progreso con el porcentaje en el centro.
 - Detecta la ejecucion de `OpenCode.exe` y, en la vista de CPU, sustituye el ecualizador por una onda sinusoidal SVG sin cambiar la metrica global.
 - Consulta la temperatura y condicion meteorologica al iniciar y cada 30 minutos mediante Open-Meteo.
@@ -18,6 +18,7 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, cl
 | --- | --- | --- | --- |
 | CPU | 40% | 70% | Verde, azul, rojo |
 | RAM | 60% | 80% | Anillo verde, azul, rojo |
+| Red | No aplica | No aplica | Onda de bajada verde y subida celeste |
 | Clima | No aplica | No aplica | Semantico segun la condicion |
 | Reloj | No aplica | No aplica | Esfera tecnica verde de HAL |
 | Bitcoin | No aplica | $76,000 USD | Naranja, verde/rojo y alerta roja |
@@ -25,11 +26,15 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, cl
 | Tarea | No aplica | No aplica | Lente unico estilo HAL con insignia de prioridad |
 | Foto | No aplica | No aplica | Foto local a pantalla completa |
 
-Cada vista conserva su metrica durante cuatro segundos. Las barras de CPU usan `Math.random()` acotado por la metrica visible. La vista de clima muestra un icono SVG de sol verde, nubes y niebla celeste, lluvia azul, nieve blanco azulado o tormenta violeta. El reloj analogico muestra solo hora y minutos, con la lectura `HAL HH:MM`.
+Cada vista conserva su metrica durante cuatro segundos. Las barras de CPU usan `Math.random()` acotado por la metrica visible. La vista de clima muestra un icono SVG de sol verde, nubes y niebla celeste, lluvia azul, nieve blanco azulado o tormenta violeta. El reloj analogico muestra solo hora y minutos, con la lectura `HAL HH:MM`. La vista de red muestra la velocidad de bajada y subida en MB/s con dos ondas (bajada solida y subida punteada).
 
 ## Bitcoin
 
 HAL consulta BTC/USD en CoinGecko al iniciar y cada seis horas. Guarda localmente el ultimo precio valido durante un maximo de 24 horas para mantener la lectura si falla la red o el servicio. La flecha verde o roja compara la ultima consulta con la anterior. Cuando BTC llega a `$76,000 USD` o menos, el icono y la lectura se vuelven rojos como alerta visual de compra.
+
+## Red
+
+La vista de red (`/on red`, tambien `net` o `banda`) muestra el ancho de banda en tiempo real: la velocidad de descarga y de subida en MB/s, con una onda solida para la bajada y una onda punteada celeste para la subida. Los datos se obtienen de forma nativa con `sysinfo` (`Networks`), sumando todas las interfaces y calculando el delta por segundo, sin dependencias nuevas. Se actualiza una vez por segundo.
 
 ## Mascota HAL
 
@@ -66,7 +71,7 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/mode focus` | Lentes y acentos azules |
 | `/mode relax` | Auriculares y acentos violetas |
 | `/theme clasico` | Tema de color base (tambien `menta`, `durazno`, `lavanda`, `cian` o `ambar`) |
-| `/on nombre` | Activa `cpu`, `ram`, `clima`, `reloj`, `btc`, `cara`, `tarea` o `foto` |
+| `/on nombre` | Activa `cpu`, `ram`, `red`, `clima`, `reloj`, `btc`, `cara`, `tarea` o `foto` |
 | `/off nombre` | Desactiva una vista del ciclo |
 | `/off hal` | Cierra HAL de forma remota |
 | `/phrase texto` | Define una frase de hasta 30 caracteres para la mascota |
@@ -79,7 +84,7 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/aviso cancel` | Cancela todos los avisos |
 | `/status` | Confirma que el bot esta vinculado |
 
-Los modos, el tema, las vistas activas, la frase, la tarea y los avisos se guardan localmente en HAL y se conservan al reiniciar. Al cumplirse un aviso, HAL muestra una alerta visual durante 30 segundos y Telegram recibe una confirmacion. `/status` informa CPU, RAM, BTC, modo, tema, tarea y vistas activas. Telegram solo se consulta para recibir comandos; si no hay token o red, HAL sigue funcionando normalmente.
+Los modos, el tema, las vistas activas, la frase, la tarea y los avisos se guardan localmente en HAL y se conservan al reiniciar. Al cumplirse un aviso, HAL muestra el ojo rojo de HAL con pulso y parpadeo durante 30 segundos y Telegram recibe una confirmacion. `/status` informa CPU, RAM, BTC, modo, tema, tarea y vistas activas. Telegram solo se consulta para recibir comandos; si no hay token o red, HAL sigue funcionando normalmente.
 
 ## Modo OpenCode
 
@@ -103,8 +108,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.3.0_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_1.3.0_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.4.0_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_1.4.0_x64_en-US.msi`
 
 ## Desarrollo
 
@@ -123,8 +128,8 @@ npm run tauri build
 
 ## Arquitectura
 
-- `src-tauri/src/main.rs`: mide CPU, RAM, procesos y OpenCode una vez por segundo; recibe comandos, mantiene avisos, envia alertas de Telegram y expone las fotos locales.
-- `src/main.ts`: alterna CPU, RAM, clima, reloj, Bitcoin, mascota, tarea y foto; conserva modos, tema, vistas, frase y tarea localmente.
-- `src/style.css`: define el HUD, iconos, anillo de RAM, marco de fotos, reloj analogico SVG, mascota por modo, tarea, avisos y estado visual de Bitcoin.
+- `src-tauri/src/main.rs`: mide CPU, RAM, red, procesos y OpenCode una vez por segundo; recibe comandos, mantiene avisos, envia alertas de Telegram y expone las fotos locales.
+- `src/main.ts`: alterna CPU, RAM, red, clima, reloj, Bitcoin, mascota, tarea y foto; conserva modos, tema, vistas, frase y tarea localmente.
+- `src/style.css`: define el HUD, iconos, anillo de RAM, widget de red, marco de fotos, reloj analogico SVG, mascota por modo, tarea, avisos y estado visual de Bitcoin.
 
 HAL mide la CPU global deliberadamente. La deteccion de OpenCode solo modifica el patron y frecuencia de animacion; no registra actividad, no analiza contenido y no cambia la metrica mostrada. Para el clima, el navegador solicita ubicacion y envia las coordenadas a Open-Meteo; HAL no las guarda. El reloj no realiza llamadas ni crea temporizadores propios: reutiliza el ciclo visual y cambia sus agujas solo al cambiar el minuto. Para Bitcoin, HAL guarda solo el precio, el precio anterior y la fecha de consulta en el almacenamiento local.

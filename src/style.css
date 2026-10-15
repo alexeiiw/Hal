@@ -180,6 +180,67 @@ output {
   text-shadow: 0 0 8px var(--glow);
 }
 
+.w-net {
+  grid-area: 1 / 1;
+  position: relative;
+  width: 100%;
+  height: 88px;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.w-net-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.net-area {
+  fill: color-mix(in srgb, var(--bar-color) 20%, transparent);
+  stroke: none;
+}
+
+.net-line {
+  fill: none;
+  stroke: var(--bar-color);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 5px var(--glow));
+}
+
+.net-up-line {
+  fill: none;
+  stroke: #38bdf8;
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+.net-readout {
+  position: absolute;
+  inset: 0 0 auto 0;
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+.net-readout b {
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-weight: 700;
+}
+
+.net-down-label {
+  color: var(--text-color);
+}
+
+.net-up-label {
+  color: #7dd3fc;
+}
+
 .w-photo {
   position: absolute;
   inset: 0;
@@ -510,23 +571,71 @@ output {
   opacity: 1;
 }
 
+#hal.red-view .equalizer {
+  opacity: 0;
+}
+
+#hal.red-view .w-net {
+  opacity: 1;
+}
+
+#hal.notice-active {
+  --bar-color: #ef4444;
+  --glow: rgba(239, 68, 68, 0.8);
+  color: #fee2e2;
+}
+
 #hal.notice-active .equalizer,
 #hal.notice-active .weather-icon,
 #hal.notice-active .hal-clock,
 #hal.notice-active .btc-icon,
-#hal.notice-active .task-face,
+#hal.notice-active .hal-face,
 #hal.notice-active .w-gauge,
 #hal.notice-active .w-photo {
   opacity: 0;
 }
 
-#hal.notice-active .hal-face {
+#hal.notice-active .task-face {
   opacity: 1;
   animation: reminder-motion 1.2s ease-in-out infinite;
 }
 
+#hal.notice-active .task-badge {
+  opacity: 0;
+}
+
+#hal.notice-active .task-lens {
+  animation: notice-ring 1.1s ease-in-out infinite;
+}
+
+#hal.notice-active .task-lens-core {
+  animation: notice-blink 1.1s ease-in-out infinite;
+}
+
 #hal.notice-active output {
   color: #facc15;
+}
+
+@keyframes notice-ring {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 5px var(--glow)) drop-shadow(0 0 10px var(--glow));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 12px var(--glow)) drop-shadow(0 0 26px var(--glow));
+  }
+}
+
+@keyframes notice-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.25;
+  }
 }
 
 @keyframes reminder-motion {

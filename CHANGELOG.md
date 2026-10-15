@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.0
+
+- Añade la vista de red (`/on red`, alias `net`/`banda`) con ancho de banda de descarga y subida en tiempo real.
+- El widget de red dibuja dos ondas (bajada solida y subida punteada) y muestra los MB/s de cada direccion.
+- Los datos vienen de `sysinfo` (`Networks`), sin dependencias nuevas, muestreados cada segundo por el evento `evento-red`.
+- El aviso/alarma ahora muestra un ojo rojo de HAL con pulso y parpadeo durante los 30 segundos de la alerta.
+
 ## 1.3.0
 
 - Añade cinco temas de color (`menta`, `durazno`, `lavanda`, `cian`, `ambar`) con una variante por modo, controlados con `/theme` y conservados al reiniciar.

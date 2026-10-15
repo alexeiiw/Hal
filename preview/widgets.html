@@ -95,12 +95,75 @@
     border-radius: 9px; padding: 6px 10px; font-size: 11px; cursor: pointer; font-family: inherit;
   }
   .btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  h2 { font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin: 34px 0 14px; border-top: 1px solid var(--line); padding-top: 22px; }
+  .ticon { width: 34px; height: 34px; fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 8px var(--glow)); }
+
+  .temp { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+  .temp .tnum { font-size: 56px; font-weight: 700; line-height: 1; text-shadow: 0 0 18px var(--glow); }
+  .temp .tnum .deg { font-size: 22px; color: var(--muted); }
+  .temp .tbar { width: 100%; height: 12px; border-radius: 8px; background: #17241f; overflow: hidden; }
+  .temp .tbar span { display: block; height: 100%; background: var(--accent); transition: width .5s ease, background .5s ease; }
+  .temp .tlabel { font-size: 11px; letter-spacing: 0.2em; color: var(--muted); }
+
+  .net { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+  .net .wave { width: 100%; height: 108px; }
+  .net .wave path { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; filter: drop-shadow(0 0 6px var(--glow)); }
+  .net #netWaveTail { opacity: 0.22; stroke-width: 8; }
+  .net .netrow { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+  .net .netrow b { color: var(--text); font-size: 17px; font-family: Consolas, monospace; }
+
+  .uptime { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+  .uptime .uicon { width: 30px; height: 30px; fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; filter: drop-shadow(0 0 10px var(--glow)); }
+  .uptime .upmain { font-size: 40px; font-weight: 700; text-shadow: 0 0 16px var(--glow); }
+  .uptime .upmain span { color: var(--text); }
+  .uptime .uplabel { font-size: 11px; letter-spacing: 0.2em; color: var(--muted); }
+
+  .live { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+  .live .pill { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #101a15; border: 1px solid var(--line); border-radius: 999px; padding: 12px 20px; }
+  .live .bell { width: 22px; height: 22px; fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .live .pill .time { font-size: 32px; font-weight: 700; color: var(--accent); text-shadow: 0 0 14px var(--glow); font-family: Consolas, monospace; }
+  .live .livebar { height: 8px; border-radius: 8px; background: #17241f; overflow: hidden; }
+  .live .livebar span { display: block; height: 100%; background: var(--accent); transition: width 1s linear; }
+  .live .livetxt { font-size: 11px; letter-spacing: 0.2em; color: var(--muted); text-align: center; }
+
+  .pomo { flex: 1; display: grid; place-items: center; }
+  .pomo svg { grid-area: 1 / 1; width: 168px; height: 168px; transform: rotate(-90deg); overflow: visible; }
+  .pomo .t { fill: none; stroke: #17241f; stroke-width: 12; }
+  .pomo-center { grid-area: 1 / 1; text-align: center; }
+  .pomo-center .big { font-size: 42px; font-weight: 700; text-shadow: 0 0 16px rgba(250,204,21,0.5); }
+  .pomo-center .unit { font-size: 12px; color: var(--muted); letter-spacing: 0.16em; margin-top: 4px; }
+
+  .bw-wrap { display: grid; grid-template-columns: minmax(300px, 360px) 1fr; gap: 22px; align-items: center; max-width: 1080px; }
+  .bw-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent), var(--panel);
+    border: 1px solid var(--line); border-radius: 20px; padding: 16px 18px;
+    box-shadow: 0 0 44px rgba(34,197,94,0.08);
+  }
+  .bw-top { display: flex; justify-content: space-between; align-items: flex-end; }
+  .bw-side.r { text-align: right; }
+  .bw-lab { font-size: 10px; letter-spacing: 0.18em; color: var(--muted); margin-bottom: 3px; }
+  .bw-lab.down { color: #22c55e; }
+  .bw-lab.up { color: #38bdf8; }
+  .bw-big { font-size: 34px; font-weight: 700; line-height: 1; text-shadow: 0 0 16px var(--glow); }
+  .bw-big span { font-size: 12px; color: var(--muted); margin-left: 5px; }
+  .bw-svg { width: 100%; height: 96px; display: block; margin: 12px 0 8px; }
+  .bw-foot { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+  .bw-foot b { color: var(--text); }
+  .bw-note { color: var(--muted); font-size: 13px; line-height: 1.6; }
+  .bw-note h3 { color: var(--text); font-size: 14px; margin: 0 0 10px; letter-spacing: 0.05em; }
+  .bw-note ul { margin: 0; padding-left: 18px; }
+  .bw-note li { margin-bottom: 7px; }
+  .bw-note b { color: var(--accent); font-weight: 600; }
+  .bw-note code { font-family: Consolas, monospace; font-size: 12px; color: var(--text); background: #101a15; padding: 1px 5px; border-radius: 5px; }
+  @media (max-width: 760px) { .bw-wrap { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
   <h1>HAL - Ideas de widgets estilo movil</h1>
-  <div class="sub">Demo visual de las 5 ideas. El widget de fotos lee una carpeta local que tu eliges.</div>
+  <div class="sub">Comparacion visual: lo que HAL ya tiene y cinco ideas nuevas (2026).</div>
 
+  <h2>Ya implementados en HAL</h2>
   <div class="grid">
     <div class="widget">
       <div class="tag">01 - Anillo grande (estilo bateria)</div>
@@ -241,6 +304,251 @@
     clearInterval(timer);
     timer = setInterval(show, 4000);
   });
+
+  document.addEventListener("DOMContentLoaded", () => {
+  // Nueva 01 - Temperatura CPU / GPU (umbrales verde -> ambar -> rojo)
+  const tempVal = document.getElementById("tempVal");
+  const tempBar = document.getElementById("tempBar");
+  const tempLabel = document.getElementById("tempLabel");
+  let temp = 62;
+  function paintTemp() {
+    const color = temp >= 78 ? "#ef4444" : temp >= 68 ? "#f59e0b" : "#22c55e";
+    const glow = temp >= 78 ? "rgba(239,68,68,.6)" : temp >= 68 ? "rgba(245,158,11,.6)" : "rgba(34,197,94,.55)";
+    tempVal.textContent = temp.toFixed(0);
+    tempBar.style.width = Math.min(100, Math.max(2, temp)) + "%";
+    tempBar.style.background = color;
+    tempVal.style.textShadow = "0 0 18px " + glow;
+    tempLabel.textContent = temp >= 78 ? "CALIENTE" : temp >= 68 ? "TIBIO" : "NORMAL";
+  }
+  paintTemp();
+  setInterval(() => {
+    temp += (Math.random() - 0.5) * 6;
+    temp = Math.max(42, Math.min(88, temp));
+    paintTemp();
+  }, 1500);
+
+  // Nueva 02 - Red: osciloscopio de descarga/subida
+  const netWave = document.getElementById("netWave");
+  const netWaveTail = document.getElementById("netWaveTail");
+  const dl = document.getElementById("dl");
+  const ul = document.getElementById("ul");
+  let speed = 10;
+  let phase = 0;
+  setInterval(() => {
+    speed += (Math.random() - 0.5) * 6;
+    speed = Math.max(1, Math.min(28, speed));
+    const amp = 6 + speed * 0.9;
+    const pts = [];
+    for (let x = 0; x <= 240; x += 3) {
+      const y = 45 + Math.sin((x / 240) * Math.PI * 4 + phase) * amp * Math.abs(Math.sin(x * 0.03 + phase));
+      pts.push((x === 0 ? "M" : "L") + x + " " + y.toFixed(1));
+    }
+    const d = pts.join(" ");
+    if (netWave.getAttribute("d")) netWaveTail.setAttribute("d", netWave.getAttribute("d"));
+    netWave.setAttribute("d", d);
+    phase += 0.4;
+    dl.textContent = speed.toFixed(1);
+    ul.textContent = (speed * (0.12 + Math.random() * 0.15)).toFixed(1);
+  }, 140);
+
+  // Nueva 03 - Uptime (tiempo encendido)
+  const uph = document.getElementById("uph");
+  const upm = document.getElementById("upm");
+  let uptimeMin = 3 * 24 * 60 + 7 * 60 + 42;
+  setInterval(() => {
+    uptimeMin++;
+    uph.textContent = String(Math.floor(uptimeMin / 60) % 24).padStart(2, "0");
+    upm.textContent = String(uptimeMin % 60).padStart(2, "0");
+  }, 2000);
+
+  // Nueva 04 - Aviso en vivo (tipo Live Activity)
+  const liveTime = document.getElementById("liveTime");
+  const liveBar = document.getElementById("liveBar");
+  const liveTotal = 300;
+  let liveLeft = 300;
+  setInterval(() => {
+    liveLeft--;
+    if (liveLeft < 0) liveLeft = liveTotal;
+    const m = Math.floor(liveLeft / 60);
+    const s = liveLeft % 60;
+    liveTime.textContent = String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    liveBar.style.width = (liveLeft / liveTotal) * 100 + "%";
+  }, 1000);
+
+  // Nueva 05 - Pomodoro de estudio (focus)
+  const pomoTime = document.getElementById("pomoTime");
+  const pomoPhase = document.getElementById("pomoPhase");
+  const pomoRing = document.getElementById("pomoRing");
+  const pomoLen = 2 * Math.PI * 84;
+  let focus = true;
+  let pomoTotal = 25 * 60;
+  let pomoLeft = 25 * 60;
+  function paintPomo() {
+    const m = Math.floor(pomoLeft / 60);
+    const s = pomoLeft % 60;
+    pomoTime.textContent = String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    pomoPhase.textContent = focus ? "ENFOQUE" : "DESCANSO";
+    pomoRing.setAttribute("stroke-dashoffset", String(pomoLen * (1 - pomoLeft / pomoTotal)));
+  }
+  paintPomo();
+  setInterval(() => {
+    pomoLeft--;
+    if (pomoLeft <= 0) {
+      focus = !focus;
+      pomoTotal = focus ? 25 * 60 : 5 * 60;
+      pomoLeft = pomoTotal;
+      pomoRing.style.stroke = focus ? "#facc15" : "#38bdf8";
+    }
+    paintPomo();
+  }, 1000);
+  });
 </script>
+
+  <h2>Nuevas ideas (2026)</h2>
+  <div class="grid">
+    <div class="widget">
+      <div class="tag">01 - Temperatura CPU / GPU</div>
+      <div class="temp">
+        <svg class="ticon" viewBox="0 0 24 24"><path d="M12 3a2.5 2.5 0 0 0-2.5 2.5v6.6a4 4 0 1 0 5 0V5.5A2.5 2.5 0 0 0 12 3Z"/><path d="M12 14.5V11"/></svg>
+        <div class="tnum mono"><span id="tempVal">62</span><span class="deg">°C</span></div>
+        <div class="tbar"><span id="tempBar" style="width:62%"></span></div>
+        <div class="tlabel mono" id="tempLabel">NORMAL</div>
+      </div>
+    </div>
+
+    <div class="widget">
+      <div class="tag">02 - Red (descarga / subida)</div>
+      <div class="net">
+        <svg class="wave" viewBox="0 0 240 90" preserveAspectRatio="none">
+          <path id="netWaveTail" d=""></path>
+          <path id="netWave" d=""></path>
+        </svg>
+        <div class="netrow">
+          <span>BAJADA <b class="mono" id="dl">12.4</b> MB/s</span>
+          <span>SUBIDA <b class="mono" id="ul">1.8</b> MB/s</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="widget">
+      <div class="tag">03 - Tiempo encendido (uptime)</div>
+      <div class="uptime">
+        <svg class="uicon" viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.6 6.6a8 8 0 1 0 10.8 0"/></svg>
+        <div class="upmain mono">3d <span id="uph">07</span>:<span id="upm">42</span></div>
+        <div class="uplabel">SIN REINICIOS</div>
+      </div>
+    </div>
+
+    <div class="widget">
+      <div class="tag">04 - Aviso en vivo (tipo Live Activity)</div>
+      <div class="live">
+        <div class="pill">
+          <svg class="bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15L6 16Z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>
+          <span class="time mono" id="liveTime">05:00</span>
+        </div>
+        <div class="livebar"><span id="liveBar" style="width:100%"></span></div>
+        <div class="livetxt">DESCANSO DE ESTUDIO</div>
+      </div>
+    </div>
+
+    <div class="widget">
+      <div class="tag">05 - Pomodoro de estudio (focus)</div>
+      <div class="pomo">
+        <svg viewBox="0 0 200 200">
+          <circle class="t" cx="100" cy="100" r="84"></circle>
+          <circle id="pomoRing" cx="100" cy="100" r="84" stroke="#facc15" stroke-width="12" stroke-linecap="round" stroke-dasharray="527.8" stroke-dashoffset="0" filter="drop-shadow(0 0 8px rgba(250,204,21,.5))"></circle>
+        </svg>
+        <div class="pomo-center">
+          <div class="big mono" id="pomoTime">25:00</div>
+          <div class="unit" id="pomoPhase">ENFOQUE</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Propuesta: ancho de banda</h2>
+  <div class="bw-wrap">
+    <div class="bw-card">
+      <div class="bw-top">
+        <div class="bw-side">
+          <div class="bw-lab down">BAJADA ↓</div>
+          <div class="bw-big mono" id="bwDown">12.4<span>MB/s</span></div>
+        </div>
+        <div class="bw-side r">
+          <div class="bw-lab up">SUBIDA ↑</div>
+          <div class="bw-big mono" id="bwUp">1.8<span>MB/s</span></div>
+        </div>
+      </div>
+      <svg class="bw-svg" viewBox="0 0 320 100" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="bwGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#22c55e" stop-opacity="0.4" />
+            <stop offset="1" stop-color="#22c55e" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+        <path id="bwArea" fill="url(#bwGrad)" stroke="none" d=""></path>
+        <path id="bwUpLine" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="5 5" stroke-linecap="round" d=""></path>
+        <path id="bwLine" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" filter="drop-shadow(0 0 6px rgba(34,197,94,.6))" d=""></path>
+      </svg>
+      <div class="bw-foot mono">
+        <span>SESION ↓ <b id="bwTotal">3.20 GB</b></span>
+        <span>PICO ↓ <b id="bwPeak">42.6</b> MB/s</span>
+      </div>
+    </div>
+    <div class="bw-note">
+      <h3>Como lo haria</h3>
+      <ul>
+        <li>Datos nativos con <b>sysinfo</b>: <code>Networks.total_received()/transmitted()</code>, se guarda el total + instante y se calcula el delta por segundo -> MB/s. <b>Sin dependencias nuevas.</b></li>
+        <li>Ondilla tipo osciloscopio con historial de ~60 muestras: bajada solida (verde), subida punteada (celeste).</li>
+        <li>Se activa como vista <b>red</b> (comando <code>/on red</code>) o pegada al lado de CPU / RAM.</li>
+        <li>Totales de sesion y pico de velocidad abajo.</li>
+      </ul>
+    </div>
+  </div>
+  <script>
+    const bwDown = document.getElementById("bwDown");
+    const bwUp = document.getElementById("bwUp");
+    const bwLine = document.getElementById("bwLine");
+    const bwArea = document.getElementById("bwArea");
+    const bwUpLine = document.getElementById("bwUpLine");
+    const bwTotalEl = document.getElementById("bwTotal");
+    const bwPeakEl = document.getElementById("bwPeak");
+    const BW = 320, BH = 100, MAXB = 48;
+    const histDown = new Array(60).fill(4);
+    const histUp = new Array(60).fill(1);
+    let sessionBytes = 3.2e9;
+    let peak = 42.6;
+
+    function bwPath(values) {
+      const step = BW / (values.length - 1);
+      let d = "M0 " + (BH - Math.min(1, values[0] / MAXB) * BH).toFixed(1);
+      for (let i = 1; i < values.length; i++) {
+        d += " L" + (i * step).toFixed(1) + " " + (BH - Math.min(1, values[i] / MAXB) * BH).toFixed(1);
+      }
+      return d;
+    }
+
+    setInterval(() => {
+      let down = histDown[histDown.length - 1] + (Math.random() - 0.5) * 9;
+      down = Math.max(0, Math.min(MAXB, down));
+      if (Math.random() < 0.08) down = Math.random() * 46;
+      let up = histUp[histUp.length - 1] + (Math.random() - 0.5) * 4;
+      up = Math.max(0, Math.min(MAXB, up));
+      histDown.push(down); histDown.shift();
+      histUp.push(up); histUp.shift();
+
+      const line = bwPath(histDown);
+      bwLine.setAttribute("d", line);
+      bwArea.setAttribute("d", line + " L" + BW + " " + BH + " L0 " + BH + " Z");
+      bwUpLine.setAttribute("d", bwPath(histUp));
+
+      bwDown.innerHTML = down.toFixed(1) + "<span>MB/s</span>";
+      bwUp.innerHTML = up.toFixed(1) + "<span>MB/s</span>";
+      peak = Math.max(peak, down);
+      bwPeakEl.textContent = peak.toFixed(1);
+      sessionBytes += down * 1e6;
+      bwTotalEl.textContent = (sessionBytes / 1e9).toFixed(2) + " GB";
+    }, 260);
+  </script>
 </body>
 </html>
