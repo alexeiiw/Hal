@@ -75,3 +75,15 @@
 - [x] Actualizada la version local a `1.1.0`; pendiente de validacion y publicacion por indicacion del usuario.
 - [x] Añadidos modo happy, avisos persistentes, alerta remota de BTC y estado remoto de HAL.
 - [x] Actualizada la version local a `1.2.0`; pendiente de validacion y publicacion por indicacion del usuario.
+- [x] Añadidos cinco temas de color con variante por modo, comando `/theme` y persistencia local.
+- [x] Reemplazado el ecualizador de RAM por un anillo de progreso con el porcentaje en el centro.
+- [x] Ajustada la onda de OpenCode para crecer en frecuencia de forma continua segun el consumo de CPU.
+- [x] Añadida la vista de marco de fotos con una sola foto local durante 24 horas.
+- [x] Añadida imagen predeterminada `HAL FOTOS` para carpetas vacias o fallos de lectura.
+- [x] Añadidos los comandos `list_photos` y `read_photo` sobre `%APPDATA%\HAL\fotos`.
+- [x] Reactivado el reloj una sola vez al arrancar para la prueba completa.
+- [x] Rediseñada la mascota como una cabeza coherente con casco, visor, ojos luminosos, brillo y antena.
+- [x] Convertida la vista de tarea en un lente unico estilo HAL con insignia de prioridad.
+- [x] Unificado el color de la cara con el modo y el tema, sin reaccionar a la carga de CPU.
+- [x] Ajustada la vista de foto para llenar toda la superficie de HAL sin marco.
+- [x] Actualizada la version local a `1.3.0`; pendiente de validacion y publicacion por indicacion del usuario.

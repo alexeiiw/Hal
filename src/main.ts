@@ -1,4 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import "./style.css";
 
 const bars = Array.from(document.querySelectorAll<HTMLElement>(".equalizer i"));
@@ -9,10 +10,14 @@ const waveTail = document.querySelector<SVGPathElement>("#wave-tail");
 const weatherIcon = document.querySelector<SVGSVGElement>("#weather-icon");
 const clockHour = document.querySelector<SVGPathElement>("#clock-hour");
 const clockMinute = document.querySelector<SVGPathElement>("#clock-minute");
-type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task";
+const gaugeArc = document.querySelector<SVGCircleElement>("#gauge-arc");
+const gaugeValue = document.querySelector<HTMLElement>("#gauge-value");
+const photoImg = document.querySelector<HTMLImageElement>("#photo-img");
+type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo";
 type WeatherKind = "clear" | "cloud" | "fog" | "rain" | "snow" | "storm";
 type BitcoinQuote = { price: number; previousPrice: number | null; updatedAt: number };
 type HalMode = "normal" | "developer" | "focus" | "relax" | "happy";
+type HalTheme = "clasico" | "menta" | "durazno" | "lavanda" | "cian" | "ambar";
 type ViewChange = { view: MetricView; enabled: boolean };
 
 const bitcoinCacheKey = "hal-bitcoin-usd";
@@ -20,9 +25,11 @@ const bitcoinRefreshMs = 6 * 60 * 60 * 1000;
 const bitcoinCacheMaxAgeMs = 24 * 60 * 60 * 1000;
 const bitcoinBuyThreshold = 76_000;
 const halSettingsKey = "hal-settings";
-const allViews: MetricView[] = ["cpu", "memory", "weather", "clock", "bitcoin", "face", "task"];
+const halClockResetKey = "hal-clock-once";
+const allViews: MetricView[] = ["cpu", "memory", "weather", "clock", "bitcoin", "face", "task", "photo"];
+const allThemes: HalTheme[] = ["clasico", "menta", "durazno", "lavanda", "cian", "ambar"];
 
-if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !clockHour || !clockMinute || bars.length !== 5) {
+if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !photoImg || bars.length !== 5) {
   throw new Error("La interfaz HAL no se pudo inicializar.");
 }
 
@@ -37,6 +44,7 @@ let metricView: MetricView = "cpu";
 let clockDisplay = "HAL --:--";
 let lastClockMinute = "";
 let halMode: HalMode = "normal";
+let halTheme: HalTheme = "clasico";
 let phrase: string | null = null;
 let task: string | null = null;
 let notice: string | null = null;
@@ -49,16 +57,20 @@ let enabledViews: Record<MetricView, boolean> = {
   bitcoin: true,
   face: true,
   task: true,
+  photo: true,
 };
 
 function saveHalSettings(): void {
-  localStorage.setItem(halSettingsKey, JSON.stringify({ mode: halMode, phrase, task, enabledViews }));
+  localStorage.setItem(halSettingsKey, JSON.stringify({ mode: halMode, theme: halTheme, phrase, task, enabledViews }));
+  const disabledViews = allViews.filter((view) => !enabledViews[view]);
+  void invoke("sync_hal_state", { mode: halMode, theme: halTheme, task, disabledViews }).catch(() => undefined);
 }
 
 function loadHalSettings(): void {
   try {
     const saved = JSON.parse(localStorage.getItem(halSettingsKey) ?? "{}") as {
       mode?: HalMode;
+      theme?: string;
       phrase?: string | null;
       task?: string | null;
       enabledViews?: Partial<Record<MetricView, boolean>>;
@@ -66,6 +78,9 @@ function loadHalSettings(): void {
 
     if (["normal", "developer", "focus", "relax", "happy"].includes(saved.mode ?? "")) {
       halMode = saved.mode!;
+    }
+    if (typeof saved.theme === "string" && (allThemes as string[]).includes(saved.theme)) {
+      halTheme = saved.theme as HalTheme;
     }
     phrase = typeof saved.phrase === "string" ? saved.phrase : null;
     task = typeof saved.task === "string" ? saved.task : null;
@@ -75,6 +90,12 @@ function loadHalSettings(): void {
   }
 
   root!.dataset.mode = halMode;
+  root!.dataset.theme = halTheme;
+  if (!localStorage.getItem(halClockResetKey)) {
+    enabledViews.clock = true;
+    localStorage.setItem(halClockResetKey, "1");
+  }
+  saveHalSettings();
 }
 
 function activeViews(): MetricView[] {
@@ -157,6 +178,81 @@ function formatBitcoinPrice(price: number): string {
   return `$${(price / 1_000).toFixed(1)}K`;
 }
 
+const gaugeCircumference = 2 * Math.PI * 42;
+
+function updateGauge(): void {
+  const ratio = Math.max(0, Math.min(1, memory / 100));
+  gaugeArc!.style.strokeDashoffset = `${gaugeCircumference * (1 - ratio)}`;
+  gaugeValue!.textContent = memory.toFixed(0);
+}
+
+const photoPickKey = "hal-photo-pick";
+const photoRefreshMs = 24 * 60 * 60 * 1000;
+const defaultPhoto =
+  "data:image/svg+xml," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 150">' +
+      '<rect width="200" height="150" rx="10" fill="#0b120f"/>' +
+      '<g fill="none" stroke="#22c55e" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">' +
+      '<rect x="62" y="52" width="76" height="54" rx="10"/>' +
+      '<circle cx="100" cy="79" r="15"/>' +
+      '<path d="M80 52l7-9h26l7 9"/>' +
+      "</g>" +
+      '<text x="100" y="128" fill="#6b8f80" font-family="Consolas, monospace" font-size="13" text-anchor="middle" letter-spacing="4">HAL FOTOS</text>' +
+      "</svg>",
+  );
+
+type PhotoPick = { name: string; pickedAt: number };
+
+function setDefaultPhoto(): void {
+  photoImg!.src = defaultPhoto;
+}
+
+async function showPhoto(name: string): Promise<void> {
+  try {
+    const dataUrl = await invoke<string>("read_photo", { name });
+    photoImg!.src = dataUrl;
+  } catch {
+    setDefaultPhoto();
+  }
+}
+
+async function refreshPhoto(): Promise<void> {
+  let names: string[] = [];
+  try {
+    names = await invoke<string[]>("list_photos");
+  } catch {
+    names = [];
+  }
+
+  if (names.length === 0) {
+    setDefaultPhoto();
+    return;
+  }
+
+  let pick: PhotoPick | null = null;
+  try {
+    pick = JSON.parse(localStorage.getItem(photoPickKey) ?? "null") as PhotoPick | null;
+  } catch {
+    pick = null;
+  }
+
+  const validPick =
+    pick !== null &&
+    typeof pick.name === "string" &&
+    typeof pick.pickedAt === "number" &&
+    Date.now() - pick.pickedAt < photoRefreshMs &&
+    names.includes(pick.name);
+
+  if (!validPick) {
+    const name = names[Math.floor(Math.random() * names.length)];
+    pick = { name, pickedAt: Date.now() };
+    localStorage.setItem(photoPickKey, JSON.stringify(pick));
+  }
+
+  await showPhoto(pick!.name);
+}
+
 function currentMetric(): {
   display: string;
   value: number;
@@ -202,6 +298,10 @@ function currentMetric(): {
     return { display: task ?? "SIN TAREA", value: 0, busyAt: 101, criticalAt: 102 };
   }
 
+  if (metricView === "photo") {
+    return { display: "HAL FOTOS", value: 0, busyAt: 101, criticalAt: 102 };
+  }
+
   return weather
     ? {
         display: `${weather.temperature.toFixed(0)} C ${weatherLabel(weather.code)}`,
@@ -224,9 +324,9 @@ function animateBars(): void {
       ? 26 + metric.value * 0.55
       : 18 + metric.value * 0.5;
   const globalTempo = overloaded ? 110 : busy ? 220 : 460;
-  const waveTempo = opencodeCpu >= 10 ? 80 : opencodeCpu >= 2 ? 170 : 440;
+  const waveTempo = Math.max(60, 440 / (1 + opencodeCpu * 0.15));
   const showOpenCodeWave = metricView === "cpu" && opencodeActive;
-  const staticView = notice !== null || metricView === "clock" || metricView === "bitcoin" || metricView === "face" || metricView === "task" || (metricView === "weather" && weather !== null);
+  const staticView = notice !== null || metricView === "clock" || metricView === "bitcoin" || metricView === "face" || metricView === "task" || metricView === "memory" || metricView === "photo" || (metricView === "weather" && weather !== null);
   const tempo = staticView ? 1000 : showOpenCodeWave ? waveTempo : globalTempo;
 
   root!.classList.toggle("overloaded", overloaded);
@@ -238,11 +338,13 @@ function animateBars(): void {
   root!.classList.toggle("btc-view", metricView === "bitcoin");
   root!.classList.toggle("face-view", metricView === "face");
   root!.classList.toggle("task-view", metricView === "task");
+  root!.classList.toggle("photo-view", metricView === "photo");
   root!.classList.toggle("notice-active", notice !== null);
   const quote = bitcoinQuote();
   root!.classList.toggle("btc-alert", metricView === "bitcoin" && !!quote && quote.price <= bitcoinBuyThreshold);
   root!.classList.toggle("btc-up", metricView === "bitcoin" && !!quote && bitcoinDirection(quote) === "up");
   root!.classList.toggle("btc-down", metricView === "bitcoin" && !!quote && bitcoinDirection(quote) === "down");
+  updateGauge();
   root!.style.setProperty("--tempo", `${tempo}ms`);
   metricOutput!.value = metric.display;
   metricOutput!.textContent = metricOutput!.value;
@@ -292,6 +394,14 @@ void listen<HalMode>("evento-modo", (event) => {
   if (["normal", "developer", "focus", "relax", "happy"].includes(event.payload)) {
     halMode = event.payload;
     root!.dataset.mode = halMode;
+    saveHalSettings();
+  }
+});
+
+void listen<HalTheme>("evento-tema", (event) => {
+  if (allThemes.includes(event.payload)) {
+    halTheme = event.payload;
+    root!.dataset.theme = halTheme;
     saveHalSettings();
   }
 });
@@ -389,5 +499,7 @@ window.setInterval(refreshWeather, 30 * 60 * 1000);
 loadBitcoinCache();
 void refreshBitcoin().catch(() => undefined);
 window.setInterval(() => void refreshBitcoin().catch(() => undefined), bitcoinRefreshMs);
+void refreshPhoto();
+window.setInterval(() => void refreshPhoto(), 60 * 60 * 1000);
 
 animateBars();

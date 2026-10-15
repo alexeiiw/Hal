@@ -1,6 +1,6 @@
-# HAL 1.2.0
+# HAL 1.3.0
 
-HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, clima, hora, Bitcoin, tarea prioritaria y una mascota HAL en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
+HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, clima, hora, Bitcoin, tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
 
 ## Comportamiento
 
@@ -8,22 +8,24 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, cl
 - Permanece sobre otras ventanas, pero los clics atraviesan HAL hacia la aplicacion de debajo.
 - Se coloca abajo a la derecha del area util del monitor.
 - Se muestra como un HUD sin borde, fondo ni panel de cristal para dar prioridad a los iconos.
-- Alterna CPU global, RAM principal, clima, reloj analogico, Bitcoin y mascota HAL cada cuatro segundos; añade tarea prioritaria si esta definida.
-- Detecta la ejecucion de `OpenCode.exe` y sustituye el ecualizador por una onda sinusoidal SVG sin cambiar la metrica global.
+- Alterna CPU global, RAM principal, clima, reloj analogico, Bitcoin, mascota HAL y foto cada cuatro segundos; añade tarea prioritaria si esta definida.
+- Muestra la RAM como un anillo de progreso con el porcentaje en el centro.
+- Detecta la ejecucion de `OpenCode.exe` y, en la vista de CPU, sustituye el ecualizador por una onda sinusoidal SVG sin cambiar la metrica global.
 - Consulta la temperatura y condicion meteorologica al iniciar y cada 30 minutos mediante Open-Meteo.
 - Solicita la ubicacion del sistema para el clima. Si se deniega el permiso o falla la consulta, muestra `CLIMA NO DISP.`.
 
 | Vista | Umbral medio | Umbral alto | Colores |
 | --- | --- | --- | --- |
 | CPU | 40% | 70% | Verde, azul, rojo |
-| RAM | 60% | 80% | Verde, azul, rojo |
+| RAM | 60% | 80% | Anillo verde, azul, rojo |
 | Clima | No aplica | No aplica | Semantico segun la condicion |
 | Reloj | No aplica | No aplica | Esfera tecnica verde de HAL |
 | Bitcoin | No aplica | $76,000 USD | Naranja, verde/rojo y alerta roja |
-| Mascota HAL | No aplica | No aplica | Carcasa, ojos y sensores verdes |
-| Tarea | No aplica | No aplica | Mascota con insignia de prioridad |
+| Mascota HAL | No aplica | No aplica | Cabeza con visor, ojos, brillo y antena en el color del modo |
+| Tarea | No aplica | No aplica | Lente unico estilo HAL con insignia de prioridad |
+| Foto | No aplica | No aplica | Foto local a pantalla completa |
 
-Cada vista conserva su metrica durante cuatro segundos. Las barras usan `Math.random()` acotado por la metrica visible. La vista de clima muestra un icono SVG de sol verde, nubes y niebla celeste, lluvia azul, nieve blanco azulado o tormenta violeta. El reloj analogico muestra solo hora y minutos, con la lectura `HAL HH:MM`.
+Cada vista conserva su metrica durante cuatro segundos. Las barras de CPU usan `Math.random()` acotado por la metrica visible. La vista de clima muestra un icono SVG de sol verde, nubes y niebla celeste, lluvia azul, nieve blanco azulado o tormenta violeta. El reloj analogico muestra solo hora y minutos, con la lectura `HAL HH:MM`.
 
 ## Bitcoin
 
@@ -31,7 +33,15 @@ HAL consulta BTC/USD en CoinGecko al iniciar y cada seis horas. Guarda localment
 
 ## Mascota HAL
 
-La ultima vista del ciclo muestra una mascota SVG estatica con carcasa ovalada y ojos. No descarga imagenes ni ejecuta animaciones adicionales; su lectura es `HAL EN LINEA`. Los modos usan capucha para developer, lentes para focus, audifonos completos para relax y sonrisa amarilla para happy.
+La vista de mascota muestra una cabeza SVG con casco redondeado, visor, dos ojos luminosos con brillo y una antena; su lectura es `HAL EN LINEA`. Los modos añaden capucha para developer, lentes para focus, audifonos con notas para relax y, en happy, ojos cerrados, sonrisa y rubor. Todos los trazos usan el color del modo (que a su vez depende del tema), de modo que la cara es estable y no cambia con la carga de CPU. La vista de tarea, en cambio, usa un lente unico estilo HAL con la insignia de prioridad.
+
+## Temas
+
+HAL incluye seis temas de color: `clasico`, `menta`, `durazno`, `lavanda`, `cian` y `ambar`. Cada tema define el tono base y una variante por modo, de modo que developer, focus, relax y happy conservan su identidad dentro del tema elegido. El tema `clasico` mantiene los colores originales de cada modo. Los umbrales (azul en carga media y rojo en carga alta) y la alerta de Bitcoin siempre tienen prioridad sobre el color del tema.
+
+## Fotos
+
+La vista de foto muestra una sola imagen local durante 24 horas: HAL elige una al azar de la carpeta `%APPDATA%\HAL\fotos` y la conserva hasta que pasan 24 horas o la foto desaparece. La foto llena por completo la superficie de HAL, sin marco ni margen: la imagen se estira al area de la ventana para rellenarla entera. La carpeta se crea automaticamente al iniciar. Si esta vacia, si el archivo falla o si no hay fotos validas, HAL muestra una imagen predeterminada con el texto `HAL FOTOS`. Se aceptan imagenes `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp` y `.bmp`.
 
 ## Telegram
 
@@ -55,7 +65,8 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/mode developer` | Capucha y acentos cian |
 | `/mode focus` | Lentes y acentos azules |
 | `/mode relax` | Auriculares y acentos violetas |
-| `/on nombre` | Activa `cpu`, `ram`, `weather`, `clock`, `bitcoin` o `face` |
+| `/theme clasico` | Tema de color base (tambien `menta`, `durazno`, `lavanda`, `cian` o `ambar`) |
+| `/on nombre` | Activa `cpu`, `ram`, `clima`, `reloj`, `btc`, `cara`, `tarea` o `foto` |
 | `/off nombre` | Desactiva una vista del ciclo |
 | `/off hal` | Cierra HAL de forma remota |
 | `/phrase texto` | Define una frase de hasta 30 caracteres para la mascota |
@@ -68,19 +79,13 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/aviso cancel` | Cancela todos los avisos |
 | `/status` | Confirma que el bot esta vinculado |
 
-Los modos, las vistas activas, la frase, la tarea y los avisos se guardan localmente en HAL y se conservan al reiniciar. Al cumplirse un aviso, HAL muestra una alerta visual durante 30 segundos y Telegram recibe una confirmacion. `/status` informa CPU, RAM, BTC, modo, tarea y vistas activas. Telegram solo se consulta para recibir comandos; si no hay token o red, HAL sigue funcionando normalmente.
+Los modos, el tema, las vistas activas, la frase, la tarea y los avisos se guardan localmente en HAL y se conservan al reiniciar. Al cumplirse un aviso, HAL muestra una alerta visual durante 30 segundos y Telegram recibe una confirmacion. `/status` informa CPU, RAM, BTC, modo, tema, tarea y vistas activas. Telegram solo se consulta para recibir comandos; si no hay token o red, HAL sigue funcionando normalmente.
 
 ## Modo OpenCode
 
-Durante la vista de CPU, si `OpenCode.exe` esta en ejecucion, HAL oculta el ecualizador y muestra una senal sinusoidal SVG continua. En la vista de RAM se muestra el ecualizador; en clima, el icono meteorologico; y en reloj, la esfera analogica. Los colores de CPU y RAM siguen la metrica visible.
+Durante la vista de CPU, si `OpenCode.exe` esta en ejecucion, HAL oculta el ecualizador y muestra una senal sinusoidal SVG continua. En la vista de RAM se muestra el anillo de progreso; en clima, el icono meteorologico; y en reloj, la esfera analogica. Los colores de CPU y RAM siguen la metrica visible.
 
-| CPU agregada de OpenCode | Frecuencia de la onda |
-| --- | --- |
-| Menor de 2% | Lenta |
-| Desde 2% hasta menos de 10% | Media |
-| 10% o mas | Rapida |
-
-La CPU de OpenCode se calcula sumando sus procesos locales. HAL actualiza la lista de procesos cada segundo, por lo que al cerrar OpenCode vuelve automaticamente al ecualizador global. No inspecciona conversaciones, archivos ni argumentos de los procesos.
+La frecuencia de la onda aumenta de forma continua segun el consumo de procesador de OpenCode: a mayor carga, mayor frecuencia, y la amplitud de la onda tambien crece con la carga. La CPU de OpenCode se calcula sumando sus procesos locales. HAL actualiza la lista de procesos cada segundo, por lo que al cerrar OpenCode vuelve automaticamente al ecualizador global. No inspecciona conversaciones, archivos ni argumentos de los procesos.
 
 ## Ejecutar
 
@@ -98,8 +103,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.2.0_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_1.2.0_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.3.0_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_1.3.0_x64_en-US.msi`
 
 ## Desarrollo
 
@@ -118,8 +123,8 @@ npm run tauri build
 
 ## Arquitectura
 
-- `src-tauri/src/main.rs`: mide CPU, RAM, procesos y OpenCode una vez por segundo; recibe comandos, mantiene avisos y envia alertas de Telegram.
-- `src/main.ts`: alterna CPU, RAM, clima, reloj, Bitcoin, mascota y tarea; conserva modos, vistas, frase y tarea localmente.
-- `src/style.css`: define el HUD, iconos, reloj analogico SVG, mascota por modo, tarea, avisos y estado visual de Bitcoin.
+- `src-tauri/src/main.rs`: mide CPU, RAM, procesos y OpenCode una vez por segundo; recibe comandos, mantiene avisos, envia alertas de Telegram y expone las fotos locales.
+- `src/main.ts`: alterna CPU, RAM, clima, reloj, Bitcoin, mascota, tarea y foto; conserva modos, tema, vistas, frase y tarea localmente.
+- `src/style.css`: define el HUD, iconos, anillo de RAM, marco de fotos, reloj analogico SVG, mascota por modo, tarea, avisos y estado visual de Bitcoin.
 
 HAL mide la CPU global deliberadamente. La deteccion de OpenCode solo modifica el patron y frecuencia de animacion; no registra actividad, no analiza contenido y no cambia la metrica mostrada. Para el clima, el navegador solicita ubicacion y envia las coordenadas a Open-Meteo; HAL no las guarda. El reloj no realiza llamadas ni crea temporizadores propios: reutiliza el ciclo visual y cambia sus agujas solo al cambiar el minuto. Para Bitcoin, HAL guarda solo el precio, el precio anterior y la fecha de consulta en el almacenamiento local.

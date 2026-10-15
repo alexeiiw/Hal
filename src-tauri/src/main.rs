@@ -8,6 +8,7 @@ use std::{
     time::Duration,
 };
 
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use chrono::{Duration as ChronoDuration, Local, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 use sysinfo::{ProcessesToUpdate, System};
@@ -20,6 +21,7 @@ struct TelegramConfig {
     chat_id: Option<i64>,
     offset: Option<i64>,
     mode: String,
+    theme: String,
     task: Option<String>,
     disabled_views: Vec<String>,
 }
@@ -28,6 +30,11 @@ struct TelegramConfig {
 struct SystemStatus {
     cpu: f32,
     memory: f32,
+}
+
+#[derive(Clone, Default)]
+struct BitcoinStatus {
+    price: Option<f64>,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -96,6 +103,66 @@ fn reminders_path() -> PathBuf {
         .join("reminders.json")
 }
 
+fn photos_dir() -> PathBuf {
+    telegram_config_path()
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."))
+        .join("fotos")
+}
+
+fn is_image(path: &std::path::Path) -> bool {
+    matches!(
+        path.extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| ext.to_ascii_lowercase())
+            .as_deref(),
+        Some("png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp")
+    )
+}
+
+#[tauri::command]
+fn list_photos() -> Vec<String> {
+    let mut names = fs::read_dir(photos_dir())
+        .map(|entries| {
+            entries
+                .flatten()
+                .filter(|entry| entry.path().is_file() && is_image(&entry.path()))
+                .filter_map(|entry| entry.file_name().into_string().ok())
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    names.sort();
+    names
+}
+
+#[tauri::command]
+fn read_photo(name: String) -> Result<String, String> {
+    if name.contains('/') || name.contains('\\') {
+        return Err("Nombre de foto invalido.".to_string());
+    }
+
+    let path = photos_dir().join(&name);
+    if !path.is_file() || !is_image(&path) {
+        return Err("La foto no existe.".to_string());
+    }
+
+    let bytes = fs::read(&path).map_err(|_| "No se pudo leer la foto.".to_string())?;
+    let mime = match path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| ext.to_ascii_lowercase())
+        .as_deref()
+    {
+        Some("png") => "image/png",
+        Some("gif") => "image/gif",
+        Some("webp") => "image/webp",
+        Some("bmp") => "image/bmp",
+        _ => "image/jpeg",
+    };
+
+    Ok(format!("data:{mime};base64,{}", STANDARD.encode(bytes)))
+}
+
 fn load_telegram_config(path: &PathBuf) -> Option<TelegramConfig> {
     if !path.exists() {
         fs::create_dir_all(path.parent()?).ok()?;
@@ -113,6 +180,24 @@ fn save_telegram_config(path: &PathBuf, config: &TelegramConfig) {
     if let Ok(content) = serde_json::to_string_pretty(config) {
         let _ = fs::write(path, content);
     }
+}
+
+#[tauri::command]
+fn sync_hal_state(
+    mode: String,
+    theme: String,
+    task: Option<String>,
+    disabled_views: Vec<String>,
+) -> Result<(), String> {
+    let path = telegram_config_path();
+    let mut config = load_telegram_config(&path)
+        .ok_or_else(|| "No se pudo abrir la configuracion de Telegram.".to_string())?;
+    config.mode = mode;
+    config.theme = theme;
+    config.task = task;
+    config.disabled_views = disabled_views;
+    save_telegram_config(&path, &config);
+    Ok(())
 }
 
 fn load_reminders(path: &PathBuf) -> ReminderStore {
@@ -153,7 +238,7 @@ async fn bitcoin_price(client: &reqwest::Client) -> Option<f64> {
 }
 
 fn inventory_status(config: &TelegramConfig) -> String {
-    let views = ["cpu", "ram", "clima", "reloj", "btc", "cara", "tarea"];
+    let views = ["cpu", "ram", "clima", "reloj", "btc", "cara", "tarea", "foto"];
     let active = views
         .iter()
         .filter(|view| {
@@ -165,6 +250,7 @@ fn inventory_status(config: &TelegramConfig) -> String {
                 "btc" => "bitcoin",
                 "cara" => "face",
                 "tarea" => "task",
+                "foto" => "photo",
                 view => view,
             };
             !config
@@ -235,6 +321,7 @@ async fn handle_telegram_command(
     client: &reqwest::Client,
     config: &mut TelegramConfig,
     system_status: &Arc<Mutex<SystemStatus>>,
+    bitcoin_status: &Arc<Mutex<BitcoinStatus>>,
     message: TelegramMessage,
 ) {
     let chat_id = message.chat.id;
@@ -286,11 +373,11 @@ async fn handle_telegram_command(
     }
 
     let response = if text == "/help" || text == "/start" {
-        "Comandos:\n/pair\n/inventory\n/mode normal|developer|focus|relax|happy\n/on nombre\n/off nombre\n/off hal\n/phrase texto\n/task texto\n/aviso 10 o 08:00\n/aviso list|cancel\n/status"
+        "Comandos:\n/pair\n/inventory\n/mode normal|developer|focus|relax|happy\n/theme clasico|menta|durazno|lavanda|cian|ambar\n/on nombre (cpu, ram, clima, reloj, btc, cara, tarea, foto)\n/off nombre\n/off hal\n/phrase texto\n/task texto\n/aviso 10 o 08:00\n/aviso list|cancel\n/status"
             .to_string()
     } else if text == "/inventory" {
         format!(
-            "{}\nModos: normal, developer, focus, relax, happy\nUsa /on nombre o /off nombre.",
+            "{}\nModos: normal, developer, focus, relax, happy\nTemas: clasico, menta, durazno, lavanda, cian, ambar\nUsa /on nombre o /off nombre.",
             inventory_status(config)
         )
     } else if text == "/status" {
@@ -298,13 +385,23 @@ async fn handle_telegram_command(
             .lock()
             .map(|status| status.clone())
             .unwrap_or_default();
-        let bitcoin = bitcoin_price(client)
-            .await
-            .map(|price| format!("BTC ${price:.0}"))
-            .unwrap_or_else(|| "BTC NO DISP.".to_string());
+        let cached_bitcoin = bitcoin_status
+            .lock()
+            .ok()
+            .and_then(|status| status.price);
+        let bitcoin = if let Some(price) = cached_bitcoin {
+            format!("BTC ${price:.0}")
+        } else if let Some(price) = bitcoin_price(client).await {
+            if let Ok(mut status) = bitcoin_status.lock() {
+                status.price = Some(price);
+            }
+            format!("BTC ${price:.0}")
+        } else {
+            "BTC NO DISP.".to_string()
+        };
         let task = config.task.as_deref().unwrap_or("sin tarea");
         format!(
-            "CPU {:.1}% | RAM {:.1}%\n{}\nModo: {}\nTarea: {}\n{}",
+            "CPU {:.1}% | RAM {:.1}%\n{}\nModo: {}\nTema: {}\nTarea: {}\n{}",
             status.cpu,
             status.memory,
             bitcoin,
@@ -312,6 +409,11 @@ async fn handle_telegram_command(
                 "normal"
             } else {
                 &config.mode
+            },
+            if config.theme.is_empty() {
+                "clasico"
+            } else {
+                &config.theme
             },
             task,
             inventory_status(config)
@@ -324,6 +426,19 @@ async fn handle_telegram_command(
                 format!("Modo {} activado.", mode.trim())
             }
             _ => "Modo inválido. Usa normal, developer, focus, relax o happy.".to_string(),
+        }
+    } else if text == "/theme list" {
+        "Temas: clasico, menta, durazno, lavanda, cian, ambar".to_string()
+    } else if text == "/theme" {
+        "Usa /theme clasico|menta|durazno|lavanda|cian|ambar.".to_string()
+    } else if let Some(theme) = text.strip_prefix("/theme ") {
+        match theme.trim() {
+            "clasico" | "menta" | "durazno" | "lavanda" | "cian" | "ambar" => {
+                config.theme = theme.trim().to_string();
+                let _ = app.emit("evento-tema", theme.trim());
+                format!("Tema {} activado.", theme.trim())
+            }
+            _ => "Tema inválido. Usa clasico, menta, durazno, lavanda, cian o ambar.".to_string(),
         }
     } else if let Some(view) = text.strip_prefix("/on ") {
         set_view(app, config, view.trim(), true)
@@ -407,11 +522,12 @@ fn set_view(
         "btc" => "bitcoin",
         "cara" => "face",
         "tarea" => "task",
+        "foto" => "photo",
         view => view,
     };
 
     match view {
-        "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" => {
+        "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo" => {
             if enabled {
                 config.disabled_views.retain(|disabled| disabled != view);
             } else if !config
@@ -434,11 +550,15 @@ fn set_view(
                 if enabled { "activada" } else { "desactivada" }
             )
         }
-        _ => "Vista inválida. Usa cpu, ram, clima, reloj, btc, cara o tarea.".to_string(),
+        _ => "Vista inválida. Usa cpu, ram, clima, reloj, btc, cara, tarea o foto.".to_string(),
     }
 }
 
-async fn run_telegram(app: tauri::AppHandle, system_status: Arc<Mutex<SystemStatus>>) {
+async fn run_telegram(
+    app: tauri::AppHandle,
+    system_status: Arc<Mutex<SystemStatus>>,
+    bitcoin_status: Arc<Mutex<BitcoinStatus>>,
+) {
     let path = telegram_config_path();
     let Some(mut config) = load_telegram_config(&path) else {
         return;
@@ -448,9 +568,18 @@ async fn run_telegram(app: tauri::AppHandle, system_status: Arc<Mutex<SystemStat
         return;
     }
 
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .user_agent("HAL/1.3")
+        .build()
+        .expect("failed to create Telegram client");
 
     loop {
+        if let Some(saved) = load_telegram_config(&path) {
+            config.mode = saved.mode;
+            config.theme = saved.theme;
+            config.task = saved.task;
+            config.disabled_views = saved.disabled_views;
+        }
         let offset = config.offset.unwrap_or(0).to_string();
         let response = client
             .get(format!(
@@ -479,7 +608,15 @@ async fn run_telegram(app: tauri::AppHandle, system_status: Arc<Mutex<SystemStat
         for update in updates.result {
             config.offset = Some(update.update_id + 1);
             if let Some(message) = update.message {
-                handle_telegram_command(&app, &client, &mut config, &system_status, message).await;
+                handle_telegram_command(
+                    &app,
+                    &client,
+                    &mut config,
+                    &system_status,
+                    &bitcoin_status,
+                    message,
+                )
+                .await;
             }
         }
         save_telegram_config(&path, &config);
@@ -530,12 +667,18 @@ fn run_reminder_watcher(app: tauri::AppHandle) {
     });
 }
 
-async fn run_bitcoin_alert(app: tauri::AppHandle) {
-    let client = reqwest::Client::new();
+async fn run_bitcoin_alert(app: tauri::AppHandle, bitcoin_status: Arc<Mutex<BitcoinStatus>>) {
+    let client = reqwest::Client::builder()
+        .user_agent("HAL/1.3")
+        .build()
+        .expect("failed to create Bitcoin client");
     let mut was_below_threshold = false;
 
     loop {
         if let Some(price) = bitcoin_price(&client).await {
+            if let Ok(mut status) = bitcoin_status.lock() {
+                status.price = Some(price);
+            }
             let below_threshold = price <= 76_000.0;
             if below_threshold && !was_below_threshold {
                 let config = load_telegram_config(&telegram_config_path());
@@ -564,6 +707,7 @@ async fn run_bitcoin_alert(app: tauri::AppHandle) {
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
+            let _ = fs::create_dir_all(photos_dir());
             let window = app.get_webview_window("main").expect("missing main window");
             window
                 .set_ignore_cursor_events(true)
@@ -579,6 +723,7 @@ fn main() {
             }
 
             let system_status = Arc::new(Mutex::new(SystemStatus::default()));
+            let bitcoin_status = Arc::new(Mutex::new(BitcoinStatus::default()));
             let monitor_status = system_status.clone();
             let app_handle = app.handle().clone();
             thread::spawn(move || {
@@ -633,12 +778,17 @@ fn main() {
                 }
             });
 
-            tauri::async_runtime::spawn(run_telegram(app.handle().clone(), system_status));
+            tauri::async_runtime::spawn(run_telegram(
+                app.handle().clone(),
+                system_status,
+                bitcoin_status.clone(),
+            ));
             run_reminder_watcher(app.handle().clone());
-            tauri::async_runtime::spawn(run_bitcoin_alert(app.handle().clone()));
+            tauri::async_runtime::spawn(run_bitcoin_alert(app.handle().clone(), bitcoin_status));
 
             Ok(())
         })
+        .invoke_handler(tauri::generate_handler![sync_hal_state, list_photos, read_photo])
         .run(tauri::generate_context!())
         .expect("error while running HAL");
 }

@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HAL - Ideas de widgets</title>
+<style>
+  :root {
+    --bg: #060a09;
+    --panel: #0e1512;
+    --line: #1c2a24;
+    --text: #dcfce7;
+    --muted: #6b8f80;
+    --accent: #22c55e;
+    --glow: rgba(34, 197, 94, 0.55);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 28px;
+    min-height: 100vh;
+    background:
+      radial-gradient(900px 500px at 15% -10%, rgba(34,197,94,0.10), transparent 60%),
+      radial-gradient(700px 400px at 100% 0%, rgba(56,189,248,0.07), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, sans-serif;
+  }
+  h1 { margin: 0 0 4px; font-size: 20px; letter-spacing: 0.04em; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 18px;
+    max-width: 1080px;
+  }
+  .widget {
+    position: relative;
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent), var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 18px;
+    overflow: hidden;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+  }
+  .tag {
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .mono { font-family: Consolas, "Cascadia Mono", monospace; font-variant-numeric: tabular-nums; }
+
+  .gauge { display: grid; place-items: center; gap: 6px; flex: 1; }
+  .gauge svg { width: 168px; height: 168px; transform: rotate(-90deg); overflow: visible; }
+  .gauge .track { fill: none; stroke: #17241f; stroke-width: 13; }
+  .gauge .value { fill: none; stroke: var(--accent); stroke-width: 13; stroke-linecap: round; filter: drop-shadow(0 0 8px var(--glow)); }
+  .gauge .center { position: absolute; text-align: center; }
+  .gauge .big { font-size: 46px; font-weight: 700; line-height: 1; }
+  .gauge .unit { font-size: 13px; color: var(--muted); }
+
+  .clock { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+  .clock .time { font-size: 54px; font-weight: 700; letter-spacing: 0.02em; text-shadow: 0 0 18px var(--glow); }
+  .clock .secs { color: var(--accent); }
+  .clock .date { color: var(--muted); margin-top: 8px; font-size: 13px; }
+
+  .weather { flex: 1; display: flex; align-items: center; gap: 14px; }
+  .weather .temp { font-size: 62px; font-weight: 700; line-height: 1; }
+  .weather .cond { color: var(--muted); font-size: 13px; letter-spacing: 0.12em; }
+  .weather .range { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  .weather .icon { font-size: 54px; filter: drop-shadow(0 0 10px rgba(56,189,248,0.5)); }
+
+  .rings { flex: 1; display: flex; align-items: center; gap: 18px; }
+  .rings svg { width: 150px; height: 150px; transform: rotate(-90deg); overflow: visible; }
+  .rings circle { fill: none; stroke-linecap: round; }
+  .rings .t { stroke: #17241f; }
+  .legend { display: flex; flex-direction: column; gap: 10px; font-size: 12px; }
+  .legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; }
+  .legend b { font-family: Consolas, monospace; }
+
+  .photo { flex: 1; display: flex; flex-direction: column; }
+  .photobox {
+    flex: 1; border-radius: 14px; border: 1px dashed var(--line);
+    display: grid; place-items: center; overflow: hidden; background: #080d0b;
+    min-height: 150px;
+  }
+  .photobox img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photobox .ph { color: var(--muted); font-size: 12px; text-align: center; padding: 10px; }
+  .photo .cap { margin-top: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
+  .btn {
+    appearance: none; border: 1px solid var(--line); background: #101a15; color: var(--text);
+    border-radius: 9px; padding: 6px 10px; font-size: 11px; cursor: pointer; font-family: inherit;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+  <h1>HAL - Ideas de widgets estilo movil</h1>
+  <div class="sub">Demo visual de las 5 ideas. El widget de fotos lee una carpeta local que tu eliges.</div>
+
+  <div class="grid">
+    <div class="widget">
+      <div class="tag">01 - Anillo grande (estilo bateria)</div>
+      <div class="gauge">
+        <svg viewBox="0 0 200 200">
+          <circle class="track" cx="100" cy="100" r="84"></circle>
+          <circle class="value" id="gauge" cx="100" cy="100" r="84" stroke-dasharray="527.8" stroke-dashoffset="116"></circle>
+        </svg>
+        <div class="center" style="grid-area:1/1;">
+          <div class="big mono" id="gaugeNum">78</div>
+          <div class="unit">% RAM</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="widget">
+      <div class="tag">02 - Reloj gigante</div>
+      <div class="clock">
+        <div class="time mono"><span id="hhmm">--:--</span><span class="secs" id="ss">00</span></div>
+        <div class="date" id="date">-</div>
+      </div>
+    </div>
+
+    <div class="widget">
+      <div class="tag">03 - Clima hero</div>
+      <div class="weather">
+        <div class="icon">⛅</div>
+        <div>
+          <div class="temp mono">28&deg;</div>
+          <div class="cond">NUBES</div>
+          <div class="range">MIN 19&deg; &middot; MAX 30&deg;</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="widget">
+      <div class="tag">04 - Anillos de actividad</div>
+      <div class="rings">
+        <svg viewBox="0 0 200 200">
+          <circle class="t" cx="100" cy="100" r="82" stroke-width="13"></circle>
+          <circle id="rCpu" cx="100" cy="100" r="82" stroke="#22c55e" stroke-width="13" stroke-dasharray="515.2" stroke-dashoffset="180" filter="drop-shadow(0 0 6px rgba(34,197,94,0.5))"></circle>
+          <circle class="t" cx="100" cy="100" r="64" stroke-width="13"></circle>
+          <circle id="rRam" cx="100" cy="100" r="64" stroke="#38bdf8" stroke-width="13" stroke-dasharray="402.1" stroke-dashoffset="140" filter="drop-shadow(0 0 6px rgba(56,189,248,0.5))"></circle>
+          <circle class="t" cx="100" cy="100" r="46" stroke-width="13"></circle>
+          <circle id="rNet" cx="100" cy="100" r="46" stroke="#c084fc" stroke-width="13" stroke-dasharray="289.0" stroke-dashoffset="120" filter="drop-shadow(0 0 6px rgba(192,132,252,0.5))"></circle>
+        </svg>
+        <div class="legend">
+          <span><i style="background:#22c55e"></i>CPU <b id="lCpu">65%</b></span>
+          <span><i style="background:#38bdf8"></i>RAM <b id="lRam">65%</b></span>
+          <span><i style="background:#c084fc"></i>RED <b id="lNet">58%</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="widget">
+      <div class="tag">05 - Marco de fotos (carpeta local)</div>
+      <div class="photo">
+        <div class="photobox" id="photobox">
+          <div class="ph">Elige una carpeta con fotos<br>y HAL las muestra en el ciclo</div>
+        </div>
+        <div class="cap">
+          <span id="cap">sin carpeta</span>
+          <button class="btn" id="pick">Elegir carpeta</button>
+        </div>
+        <input id="folder" type="file" accept="image/*" webkitdirectory multiple hidden />
+      </div>
+    </div>
+  </div>
+
+<script>
+  const gauge = document.getElementById("gauge");
+  const gaugeNum = document.getElementById("gaugeNum");
+  const circ = 2 * Math.PI * 84;
+  let ram = 78;
+
+  setInterval(() => {
+    ram += (Math.random() - 0.5) * 10;
+    ram = Math.max(12, Math.min(96, ram));
+    gauge.setAttribute("stroke-dashoffset", String(circ * (1 - ram / 100)));
+    gaugeNum.textContent = ram.toFixed(0);
+    gauge.style.stroke = ram >= 80 ? "#ef4444" : ram >= 60 ? "#3b82f6" : "#22c55e";
+    gauge.style.filter = ram >= 80 ? "drop-shadow(0 0 8px rgba(239,68,68,.6))" : ram >= 60 ? "drop-shadow(0 0 8px rgba(59,130,246,.6))" : "drop-shadow(0 0 8px rgba(34,197,94,.55))";
+  }, 900);
+
+  const rCpu = document.getElementById("rCpu"), rRam = document.getElementById("rRam"), rNet = document.getElementById("rNet");
+  const lCpu = document.getElementById("lCpu"), lRam = document.getElementById("lRam"), lNet = document.getElementById("lNet");
+  const rings = [
+    { el: rCpu, out: lCpu, len: 2 * Math.PI * 82, val: 65 },
+    { el: rRam, out: lRam, len: 2 * Math.PI * 64, val: 66 },
+    { el: rNet, out: lNet, len: 2 * Math.PI * 46, val: 58 },
+  ];
+  setInterval(() => {
+    for (const r of rings) {
+      r.val += (Math.random() - 0.5) * 12;
+      r.val = Math.max(8, Math.min(98, r.val));
+      r.el.setAttribute("stroke-dashoffset", String(r.len * (1 - r.val / 100)));
+      r.out.textContent = r.val.toFixed(0) + "%";
+    }
+  }, 1100);
+
+  const hhmm = document.getElementById("hhmm"), ss = document.getElementById("ss"), date = document.getElementById("date");
+  const dias = ["dom", "lun", "mar", "mie", "jue", "vie", "sab"];
+  setInterval(() => {
+    const n = new Date();
+    hhmm.textContent = String(n.getHours()).padStart(2, "0") + ":" + String(n.getMinutes()).padStart(2, "0");
+    ss.textContent = " " + String(n.getSeconds()).padStart(2, "0");
+    date.textContent = dias[n.getDay()] + " " + n.getDate() + "/" + (n.getMonth() + 1) + "/" + n.getFullYear();
+  }, 500);
+
+  const pick = document.getElementById("pick");
+  const folder = document.getElementById("folder");
+  const photobox = document.getElementById("photobox");
+  const cap = document.getElementById("cap");
+  let photos = [];
+  let idx = 0;
+  let timer = 0;
+
+  function show() {
+    if (!photos.length) return;
+    const file = photos[idx % photos.length];
+    const url = URL.createObjectURL(file);
+    photobox.innerHTML = '<img alt="" src="' + url + '">';
+    cap.textContent = file.name;
+    idx++;
+  }
+
+  pick.addEventListener("click", () => folder.click());
+  folder.addEventListener("change", () => {
+    photos = Array.from(folder.files).filter(f => /^image\//.test(f.type));
+    idx = 0;
+    if (!photos.length) {
+      photobox.innerHTML = '<div class="ph">La carpeta no tiene imagenes</div>';
+      cap.textContent = "0 fotos";
+      return;
+    }
+    cap.textContent = photos.length + " fotos";
+    show();
+    clearInterval(timer);
+    timer = setInterval(show, 4000);
+  });
+</script>
+</body>
+</html>

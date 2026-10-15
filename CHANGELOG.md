@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.3.0
+
+- Añade cinco temas de color (`menta`, `durazno`, `lavanda`, `cian`, `ambar`) con una variante por modo, controlados con `/theme` y conservados al reiniciar.
+- Reemplaza el ecualizador de RAM por un anillo de progreso con el porcentaje en el centro.
+- Hace que la onda de OpenCode aumente su frecuencia de forma continua segun el consumo de CPU.
+- Añade una vista de marco de fotos que muestra una sola imagen local durante 24 horas.
+- La foto llena toda la superficie de HAL sin marco, estirandose al area de la ventana.
+- Muestra una imagen predeterminada `HAL FOTOS` si la carpeta esta vacia o si la foto falla.
+- Añade los comandos `list_photos` y `read_photo` para leer `%APPDATA%\HAL\fotos` en base64.
+- Refina las caras por modo: panel tecnico normal, borde de capucha developer, lentes focus y audifonos con notas musicales en relax.
+- Rediseña la mascota como una cabeza coherente con casco, visor, ojos luminosos y antena; la tarea pasa a un lente unico estilo HAL.
+- Unifica el color de la cara con el del modo (y el tema), dejando de reaccionar a la carga de CPU.
+
 ## 1.2.0
 
 - Añade el modo happy y corrige la distribucion de los audifonos de la mascota relax.

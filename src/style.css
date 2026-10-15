@@ -1,3 +1,5 @@
+@layer base, mode, theme, state, alert;
+
 :root {
   color: #dcfce7;
   font-family: "Segoe UI", sans-serif;
@@ -17,19 +19,24 @@ body,
   overflow: hidden;
 }
 
-#hal {
-  --bar-color: #22c55e;
-  --glow: rgba(34, 197, 94, 0.75);
-  --weather-color: var(--bar-color);
-  --weather-glow: var(--glow);
-  --btc-color: #f7931a;
-  --btc-glow: rgba(247, 147, 26, 0.8);
-  position: relative;
-  display: grid;
-  place-items: center;
-  grid-template-rows: 88px 18px;
-  padding: 7px 10px;
-  transition: color 160ms ease;
+@layer base {
+  #hal {
+    --bar-color: #22c55e;
+    --glow: color-mix(in srgb, var(--bar-color) 78%, transparent);
+    --text-color: #dcfce7;
+    --shell-tint: #dcfce7;
+    --weather-color: var(--bar-color);
+    --weather-glow: var(--glow);
+    --btc-color: #f7931a;
+    --btc-glow: rgba(247, 147, 26, 0.8);
+    color: var(--text-color);
+    position: relative;
+    display: grid;
+    place-items: center;
+    grid-template-rows: 88px 18px;
+    padding: 7px 10px;
+    transition: color 160ms ease;
+  }
 }
 
 .visualizer,
@@ -50,7 +57,8 @@ output {
 .hal-clock,
 .btc-icon,
 .hal-face,
-.task-face {
+.task-face,
+.w-gauge {
   grid-area: 1 / 1;
 }
 
@@ -127,16 +135,83 @@ output {
   transition: opacity 140ms ease;
 }
 
-.task-shell {
-  fill: color-mix(in srgb, #dcfce7 88%, var(--bar-color));
+.w-gauge {
+  place-self: center;
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.w-gauge svg {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.w-gauge-track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--bar-color) 22%, transparent);
+  stroke-width: 8;
+}
+
+.w-gauge-arc {
+  fill: none;
   stroke: var(--bar-color);
-  stroke-width: 2;
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 263.89;
+  stroke-dashoffset: 263.89;
+  filter: drop-shadow(0 0 5px var(--glow)) drop-shadow(0 0 10px var(--glow));
+  transition: stroke-dashoffset var(--tempo, 1000ms) ease-out, stroke 160ms ease;
+}
+
+.w-gauge-num {
+  grid-area: 1 / 1;
+  color: var(--text-color);
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 8px var(--glow);
+}
+
+.w-photo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.w-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.task-shell {
+  fill: color-mix(in srgb, #07110b 82%, var(--bar-color));
+  stroke: var(--bar-color);
+  stroke-width: 2.5;
   filter: drop-shadow(0 0 5px var(--glow)) drop-shadow(0 0 10px var(--glow));
 }
 
-.task-eye {
-  fill: #07110b;
-  filter: drop-shadow(0 0 3px var(--glow));
+.task-lens {
+  fill: none;
+  stroke: var(--bar-color);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 5px var(--glow)) drop-shadow(0 0 10px var(--glow));
+}
+
+.task-lens-core {
+  fill: var(--bar-color);
+  filter: drop-shadow(0 0 6px var(--glow)) drop-shadow(0 0 12px var(--glow));
 }
 
 .task-badge {
@@ -149,57 +224,135 @@ output {
 }
 
 .face-shell {
-  fill: color-mix(in srgb, #dcfce7 88%, var(--bar-color));
+  fill: color-mix(in srgb, #07110b 82%, var(--bar-color));
   stroke: var(--bar-color);
-  stroke-width: 2;
+  stroke-width: 2.5;
   filter: drop-shadow(0 0 5px var(--glow)) drop-shadow(0 0 10px var(--glow));
 }
 
+.face-visor {
+  fill: color-mix(in srgb, var(--bar-color) 16%, transparent);
+}
+
+.face-eye {
+  fill: var(--bar-color);
+  filter: drop-shadow(0 0 4px var(--glow)) drop-shadow(0 0 8px var(--glow));
+  transition: opacity 180ms ease;
+}
+
+.face-shine {
+  fill: #ffffff;
+  opacity: 0.85;
+  transition: opacity 180ms ease;
+}
+
+.face-mouth {
+  fill: none;
+  stroke: var(--bar-color);
+  stroke-linecap: round;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 3px var(--glow));
+  transition: opacity 180ms ease;
+}
+
+.face-antenna {
+  fill: none;
+  stroke: var(--bar-color);
+  stroke-linecap: round;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 3px var(--glow));
+}
+
+.face-antenna-tip {
+  fill: var(--bar-color);
+  filter: drop-shadow(0 0 4px var(--glow)) drop-shadow(0 0 8px var(--glow));
+}
+
 .face-hood,
+.face-headband,
 .face-glasses,
 .face-headphones,
-.face-headband,
-.face-smile {
+.face-music,
+.face-happy-eye,
+.face-smile,
+.face-blush {
   opacity: 0;
+  transition: opacity 180ms ease;
 }
 
 .face-hood {
-  fill: #0f172a;
-  stroke: #22d3ee;
-  stroke-width: 2;
-  filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.7));
+  fill: #0b1220;
+  stroke: var(--bar-color);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 6px var(--glow));
 }
 
-.face-glasses circle,
-.face-glasses path,
-.face-headphones path,
 .face-headband {
   fill: none;
   stroke: var(--bar-color);
   stroke-linecap: round;
   stroke-width: 3;
-  filter: drop-shadow(0 0 4px rgba(96, 165, 250, 0.75));
+  filter: drop-shadow(0 0 4px var(--glow));
 }
 
-.face-eye {
-  fill: #07110b;
-  filter: drop-shadow(0 0 3px var(--glow));
+.face-glasses circle {
+  fill: color-mix(in srgb, #07110b 45%, transparent);
+  stroke: var(--bar-color);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 4px var(--glow));
+}
+
+.face-glasses path {
+  fill: none;
+  stroke: var(--bar-color);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 4px var(--glow));
+}
+
+.face-headphones rect {
+  fill: color-mix(in srgb, #07110b 70%, var(--bar-color));
+  stroke: var(--bar-color);
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 4px var(--glow));
+}
+
+.face-headphones .headphone-detail {
+  fill: none;
+  stroke: var(--bar-color);
+  stroke-width: 1.5;
+}
+
+.face-music path {
+  fill: none;
+  stroke: var(--bar-color);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 4px var(--glow));
+}
+
+.face-happy-eye {
+  fill: none;
+  stroke: var(--bar-color);
+  stroke-linecap: round;
+  stroke-width: 3.5;
+  filter: drop-shadow(0 0 4px var(--glow));
 }
 
 .face-smile {
   fill: none;
-  stroke: #facc15;
-  stroke-linecap: round;
-  stroke-width: 3;
-  filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.85));
-}
-
-.face-status {
-  fill: none;
   stroke: var(--bar-color);
   stroke-linecap: round;
-  stroke-width: 2;
-  filter: drop-shadow(0 0 3px var(--glow));
+  stroke-width: 4;
+  filter: drop-shadow(0 0 5px var(--glow));
+}
+
+.face-blush {
+  fill: color-mix(in srgb, var(--bar-color) 45%, transparent);
+  filter: drop-shadow(0 0 4px var(--glow));
 }
 
 .btc-icon circle,
@@ -309,18 +462,20 @@ output {
   opacity: 1;
 }
 
-#hal.btc-view.btc-up output {
-  color: #22c55e;
-}
+@layer alert {
+  #hal.btc-view.btc-up output {
+    color: #22c55e;
+  }
 
-#hal.btc-view.btc-down output,
-#hal.btc-view.btc-alert output {
-  color: #ef4444;
-}
+  #hal.btc-view.btc-down output,
+  #hal.btc-view.btc-alert output {
+    color: #ef4444;
+  }
 
-#hal.btc-alert {
-  --btc-color: #ef4444;
-  --btc-glow: rgba(239, 68, 68, 0.85);
+  #hal.btc-alert {
+    --btc-color: #ef4444;
+    --btc-glow: rgba(239, 68, 68, 0.85);
+  }
 }
 
 #hal.face-view .equalizer {
@@ -339,11 +494,29 @@ output {
   opacity: 1;
 }
 
+#hal.memory-view .equalizer {
+  opacity: 0;
+}
+
+#hal.memory-view .w-gauge {
+  opacity: 1;
+}
+
+#hal.photo-view .equalizer {
+  opacity: 0;
+}
+
+#hal.photo-view .w-photo {
+  opacity: 1;
+}
+
 #hal.notice-active .equalizer,
 #hal.notice-active .weather-icon,
 #hal.notice-active .hal-clock,
 #hal.notice-active .btc-icon,
-#hal.notice-active .task-face {
+#hal.notice-active .task-face,
+#hal.notice-active .w-gauge,
+#hal.notice-active .w-photo {
   opacity: 0;
 }
 
@@ -371,44 +544,168 @@ output {
   }
 }
 
-#hal[data-mode="developer"]:not(.overloaded):not(.busy) {
-  --bar-color: #22d3ee;
-  --glow: rgba(34, 211, 238, 0.78);
+@layer mode {
+  #hal[data-mode="developer"]:not(.overloaded):not(.busy) {
+    --bar-color: #22d3ee;
+  }
+
+  #hal[data-mode="focus"]:not(.overloaded):not(.busy) {
+    --bar-color: #60a5fa;
+  }
+
+  #hal[data-mode="relax"]:not(.overloaded):not(.busy) {
+    --bar-color: #c084fc;
+  }
+
+  #hal[data-mode="happy"]:not(.overloaded):not(.busy) {
+    --bar-color: #facc15;
+  }
 }
 
-#hal[data-mode="focus"]:not(.overloaded):not(.busy) {
-  --bar-color: #60a5fa;
-  --glow: rgba(96, 165, 250, 0.78);
-}
+@layer theme {
+  #hal[data-theme="clasico"] {
+    --text-color: #dcfce7;
+    --shell-tint: #dcfce7;
+  }
 
-#hal[data-mode="relax"]:not(.overloaded):not(.busy) {
-  --bar-color: #c084fc;
-  --glow: rgba(192, 132, 252, 0.78);
-}
+  #hal[data-theme="menta"] {
+    --bar-color: #2dd4bf;
+    --text-color: #e7fffb;
+    --shell-tint: #eafff9;
+  }
 
-#hal[data-mode="happy"]:not(.overloaded):not(.busy) {
-  --bar-color: #facc15;
-  --glow: rgba(250, 204, 21, 0.78);
+  #hal[data-theme="menta"][data-mode="developer"] {
+    --bar-color: #22d3ee;
+  }
+
+  #hal[data-theme="menta"][data-mode="focus"] {
+    --bar-color: #38bdf8;
+  }
+
+  #hal[data-theme="menta"][data-mode="relax"] {
+    --bar-color: #818cf8;
+  }
+
+  #hal[data-theme="menta"][data-mode="happy"] {
+    --bar-color: #a3e635;
+  }
+
+  #hal[data-theme="durazno"] {
+    --bar-color: #fb923c;
+    --text-color: #ffefe2;
+    --shell-tint: #fff1e6;
+  }
+
+  #hal[data-theme="durazno"][data-mode="developer"] {
+    --bar-color: #2dd4bf;
+  }
+
+  #hal[data-theme="durazno"][data-mode="focus"] {
+    --bar-color: #60a5fa;
+  }
+
+  #hal[data-theme="durazno"][data-mode="relax"] {
+    --bar-color: #e879f9;
+  }
+
+  #hal[data-theme="durazno"][data-mode="happy"] {
+    --bar-color: #fbbf24;
+  }
+
+  #hal[data-theme="lavanda"] {
+    --bar-color: #a78bfa;
+    --text-color: #f1ebff;
+    --shell-tint: #f4eeff;
+  }
+
+  #hal[data-theme="lavanda"][data-mode="developer"] {
+    --bar-color: #22d3ee;
+  }
+
+  #hal[data-theme="lavanda"][data-mode="focus"] {
+    --bar-color: #818cf8;
+  }
+
+  #hal[data-theme="lavanda"][data-mode="relax"] {
+    --bar-color: #c084fc;
+  }
+
+  #hal[data-theme="lavanda"][data-mode="happy"] {
+    --bar-color: #fcd34d;
+  }
+
+  #hal[data-theme="cian"] {
+    --bar-color: #22d3ee;
+    --text-color: #e0fbff;
+    --shell-tint: #e6fbff;
+  }
+
+  #hal[data-theme="cian"][data-mode="developer"] {
+    --bar-color: #06b6d4;
+  }
+
+  #hal[data-theme="cian"][data-mode="focus"] {
+    --bar-color: #38bdf8;
+  }
+
+  #hal[data-theme="cian"][data-mode="relax"] {
+    --bar-color: #818cf8;
+  }
+
+  #hal[data-theme="cian"][data-mode="happy"] {
+    --bar-color: #a3e635;
+  }
+
+  #hal[data-theme="ambar"] {
+    --bar-color: #f59e0b;
+    --text-color: #fff4d6;
+    --shell-tint: #fff6dd;
+  }
+
+  #hal[data-theme="ambar"][data-mode="developer"] {
+    --bar-color: #2dd4bf;
+  }
+
+  #hal[data-theme="ambar"][data-mode="focus"] {
+    --bar-color: #60a5fa;
+  }
+
+  #hal[data-theme="ambar"][data-mode="relax"] {
+    --bar-color: #c084fc;
+  }
+
+  #hal[data-theme="ambar"][data-mode="happy"] {
+    --bar-color: #fbbf24;
+  }
 }
 
 #hal[data-mode="developer"] .face-hood,
 #hal[data-mode="focus"] .face-glasses,
 #hal[data-mode="relax"] .face-headphones,
 #hal[data-mode="relax"] .face-headband,
-#hal[data-mode="happy"] .face-smile {
+#hal[data-mode="relax"] .face-music,
+#hal[data-mode="happy"] .face-happy-eye,
+#hal[data-mode="happy"] .face-smile,
+#hal[data-mode="happy"] .face-blush {
   opacity: 1;
 }
 
-#hal.overloaded {
-  --bar-color: #ef4444;
-  --glow: rgba(239, 68, 68, 0.8);
-  color: #fee2e2;
+#hal[data-mode="happy"] .face-eye,
+#hal[data-mode="happy"] .face-shine,
+#hal[data-mode="happy"] .face-mouth {
+  opacity: 0;
 }
 
-#hal.busy {
-  --bar-color: #3b82f6;
-  --glow: rgba(59, 130, 246, 0.8);
-  color: #dbeafe;
+@layer state {
+  #hal.overloaded {
+    --bar-color: #ef4444;
+    color: #fee2e2;
+  }
+
+  #hal.busy {
+    --bar-color: #3b82f6;
+    color: #dbeafe;
+  }
 }
 
 output {

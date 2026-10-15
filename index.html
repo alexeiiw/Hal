@@ -29,28 +29,51 @@
           <path d="M25 16v32M30 14v36" />
         </svg>
         <svg class="hal-face" viewBox="0 0 120 80" aria-hidden="true">
-          <path class="face-hood" d="M25 64C12 52 13 21 34 10c14-8 38-8 52 0 21 11 22 42 9 54H25Z" />
-          <path class="face-headband" d="M27 46V35a33 33 0 0 1 66 0v11" />
-          <path class="face-shell" d="M29 20C43 13 77 13 91 20c9 5 13 15 11 27-2 13-11 20-24 23-12 3-24 3-36 0-13-3-22-10-24-23-2-12 2-22 11-27Z" />
-          <circle class="face-eye" cx="47" cy="42" r="6" />
-          <circle class="face-eye" cx="73" cy="42" r="6" />
-          <path class="face-smile" d="M48 54c7 7 17 7 24 0" />
+          <path class="face-hood" d="M60 4C32 4 14 24 14 45c0 10 4 19 11 26h70c7-7 11-16 11-26C106 24 88 4 60 4Z" />
+          <path class="face-headband" d="M23 42C23 20 39 8 60 8s37 12 37 34" />
+          <rect class="face-shell" x="22" y="16" width="76" height="48" rx="24" />
+          <rect class="face-visor" x="34" y="26" width="52" height="28" rx="14" />
+          <circle class="face-eye" cx="48" cy="40" r="7" />
+          <circle class="face-eye" cx="72" cy="40" r="7" />
+          <circle class="face-shine" cx="50" cy="37.5" r="2" />
+          <circle class="face-shine" cx="74" cy="37.5" r="2" />
+          <path class="face-happy-eye" d="M42 41c2.5-4 7-4 9.5 0M68.5 41c2.5-4 7-4 9.5 0" />
+          <path class="face-mouth" d="M54 51c3 3 9 3 12 0" />
+          <path class="face-smile" d="M49 50c4 6 18 6 22 0" />
+          <circle class="face-blush" cx="33" cy="49" r="4" />
+          <circle class="face-blush" cx="87" cy="49" r="4" />
+          <path class="face-antenna" d="M60 16V7" />
+          <circle class="face-antenna-tip" cx="60" cy="6" r="3" />
           <g class="face-glasses">
-            <circle cx="47" cy="42" r="10" />
-            <circle cx="73" cy="42" r="10" />
-            <path d="M57 42h6" />
+            <circle cx="48" cy="40" r="11" />
+            <circle cx="72" cy="40" r="11" />
+            <path d="M59 40h2M37 38l-4-3M83 38l4-3" />
           </g>
           <g class="face-headphones">
-            <path d="M24 43h9v15h-9M87 43h9v15h-9" />
+            <rect x="16" y="31" width="13" height="18" rx="6" />
+            <rect x="91" y="31" width="13" height="18" rx="6" />
+            <path class="headphone-detail" d="M22.5 38v4M97.5 38v4" />
           </g>
-          <path class="face-status" d="M53 57h14" />
+          <g class="face-music">
+            <path d="M103 20v13m0-13 7-2v12m-7 3a3 3 0 1 1 0-6m7 3a3 3 0 1 1 0-6" />
+          </g>
         </svg>
         <svg class="task-face" viewBox="0 0 120 80" aria-hidden="true">
-          <path class="task-shell" d="M29 20C43 13 77 13 91 20c9 5 13 15 11 27-2 13-11 20-24 23-12 3-24 3-36 0-13-3-22-10-24-23-2-12 2-22 11-27Z" />
-          <circle class="task-eye" cx="47" cy="42" r="6" />
-          <circle class="task-eye" cx="73" cy="42" r="6" />
-          <path class="task-badge" d="M87 15h18v18H87zM92 24l4 4 6-8" />
+          <rect class="task-shell" x="22" y="16" width="76" height="48" rx="24" />
+          <circle class="task-lens" cx="60" cy="40" r="15" />
+          <circle class="task-lens-core" cx="60" cy="40" r="6" />
+          <path class="task-badge" d="M90 8h20v20H90zM96 18l4 4 7-9" />
         </svg>
+        <div class="w-gauge">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <circle class="w-gauge-track" cx="50" cy="50" r="42" />
+            <circle id="gauge-arc" class="w-gauge-arc" cx="50" cy="50" r="42" />
+          </svg>
+          <b class="w-gauge-num"><span id="gauge-value">0</span>%</b>
+        </div>
+      </div>
+      <div class="w-photo">
+        <img id="photo-img" alt="Foto de HAL" />
       </div>
       <output id="metric">CPU 0.0%</output>
     </main>
