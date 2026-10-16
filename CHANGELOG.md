@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.0
+
+- Unifica color y modo: cada modo define un color fijo (normal verde, developer cian, focus azul, relax violeta, happy amarillo).
+- Elimina los temas de color y el comando `/theme`; se retiran el campo `theme` de la configuracion de Telegram y su estado guardado.
+- La rotacion de la vista de foto pasa de 24 a 6 horas.
+- Actualiza `/help` para listar todos los comandos disponibles.
+
 ## 1.4.0
 
 - Añade la vista de red (`/on red`, alias `net`/`banda`) con ancho de banda de descarga y subida en tiempo real.

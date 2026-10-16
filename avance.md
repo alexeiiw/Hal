@@ -1,5 +1,13 @@
 # Avance de HAL
 
+## 2026-10-16
+
+- [x] Unificado color y modo: cada modo define un color fijo (normal verde, developer cian, focus azul, relax violeta, happy amarillo).
+- [x] Eliminado el comando `/theme`, el campo `theme` de la configuracion de Telegram y el estado de tema en el frontend y el CSS.
+- [x] Cambiada la rotacion de la vista de foto de 24 a 6 horas.
+- [x] Actualizado `/help` para listar todos los comandos disponibles.
+- [x] Actualizada la version local a `1.5.0`, README y changelog.
+
 ## 2026-10-15
 
 - [x] Añadida la vista de red con ancho de banda de descarga y subida usando `sysinfo` (`Networks`), sin dependencias nuevas.

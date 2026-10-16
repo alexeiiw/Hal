@@ -21,7 +21,6 @@ struct TelegramConfig {
     chat_id: Option<i64>,
     offset: Option<i64>,
     mode: String,
-    theme: String,
     task: Option<String>,
     disabled_views: Vec<String>,
 }
@@ -191,7 +190,6 @@ fn save_telegram_config(path: &PathBuf, config: &TelegramConfig) {
 #[tauri::command]
 fn sync_hal_state(
     mode: String,
-    theme: String,
     task: Option<String>,
     disabled_views: Vec<String>,
 ) -> Result<(), String> {
@@ -199,7 +197,6 @@ fn sync_hal_state(
     let mut config = load_telegram_config(&path)
         .ok_or_else(|| "No se pudo abrir la configuracion de Telegram.".to_string())?;
     config.mode = mode;
-    config.theme = theme;
     config.task = task;
     config.disabled_views = disabled_views;
     save_telegram_config(&path, &config);
@@ -379,11 +376,11 @@ async fn handle_telegram_command(
     }
 
     let response = if text == "/help" || text == "/start" {
-        "Comandos:\n/pair\n/inventory\n/mode normal|developer|focus|relax|happy\n/theme clasico|menta|durazno|lavanda|cian|ambar\n/on nombre (cpu, ram, red, clima, reloj, btc, cara, tarea, foto)\n/off nombre\n/off hal\n/phrase texto\n/task texto\n/aviso 10 o 08:00\n/aviso list|cancel\n/status"
+        "Comandos:\n/help\n/pair\n/status\n/inventory\n/mode normal|developer|focus|relax|happy\n/on nombre (cpu, ram, red, clima, reloj, btc, cara, tarea, foto)\n/off nombre\n/off hal\n/phrase texto | /phrase clear\n/task texto | /task clear\n/aviso 10 o 08:00\n/aviso list | /aviso cancel"
             .to_string()
     } else if text == "/inventory" {
         format!(
-            "{}\nModos: normal, developer, focus, relax, happy\nTemas: clasico, menta, durazno, lavanda, cian, ambar\nUsa /on nombre o /off nombre.",
+            "{}\nModos: normal, developer, focus, relax, happy\nUsa /on nombre o /off nombre.",
             inventory_status(config)
         )
     } else if text == "/status" {
@@ -407,7 +404,7 @@ async fn handle_telegram_command(
         };
         let task = config.task.as_deref().unwrap_or("sin tarea");
         format!(
-            "CPU {:.1}% | RAM {:.1}%\n{}\nModo: {}\nTema: {}\nTarea: {}\n{}",
+            "CPU {:.1}% | RAM {:.1}%\n{}\nModo: {}\nTarea: {}\n{}",
             status.cpu,
             status.memory,
             bitcoin,
@@ -415,11 +412,6 @@ async fn handle_telegram_command(
                 "normal"
             } else {
                 &config.mode
-            },
-            if config.theme.is_empty() {
-                "clasico"
-            } else {
-                &config.theme
             },
             task,
             inventory_status(config)
@@ -432,19 +424,6 @@ async fn handle_telegram_command(
                 format!("Modo {} activado.", mode.trim())
             }
             _ => "Modo inválido. Usa normal, developer, focus, relax o happy.".to_string(),
-        }
-    } else if text == "/theme list" {
-        "Temas: clasico, menta, durazno, lavanda, cian, ambar".to_string()
-    } else if text == "/theme" {
-        "Usa /theme clasico|menta|durazno|lavanda|cian|ambar.".to_string()
-    } else if let Some(theme) = text.strip_prefix("/theme ") {
-        match theme.trim() {
-            "clasico" | "menta" | "durazno" | "lavanda" | "cian" | "ambar" => {
-                config.theme = theme.trim().to_string();
-                let _ = app.emit("evento-tema", theme.trim());
-                format!("Tema {} activado.", theme.trim())
-            }
-            _ => "Tema inválido. Usa clasico, menta, durazno, lavanda, cian o ambar.".to_string(),
         }
     } else if let Some(view) = text.strip_prefix("/on ") {
         set_view(app, config, view.trim(), true)
@@ -576,14 +555,13 @@ async fn run_telegram(
     }
 
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.4")
+        .user_agent("HAL/1.5")
         .build()
         .expect("failed to create Telegram client");
 
     loop {
         if let Some(saved) = load_telegram_config(&path) {
             config.mode = saved.mode;
-            config.theme = saved.theme;
             config.task = saved.task;
             config.disabled_views = saved.disabled_views;
         }
@@ -676,7 +654,7 @@ fn run_reminder_watcher(app: tauri::AppHandle) {
 
 async fn run_bitcoin_alert(app: tauri::AppHandle, bitcoin_status: Arc<Mutex<BitcoinStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.4")
+        .user_agent("HAL/1.5")
         .build()
         .expect("failed to create Bitcoin client");
     let mut was_below_threshold = false;

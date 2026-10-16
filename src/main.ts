@@ -23,7 +23,6 @@ type WeatherKind = "clear" | "cloud" | "fog" | "rain" | "snow" | "storm";
 type BitcoinQuote = { price: number; previousPrice: number | null; updatedAt: number };
 type NetworkSample = { down: number; up: number };
 type HalMode = "normal" | "developer" | "focus" | "relax" | "happy";
-type HalTheme = "clasico" | "menta" | "durazno" | "lavanda" | "cian" | "ambar";
 type ViewChange = { view: MetricView; enabled: boolean };
 
 const bitcoinCacheKey = "hal-bitcoin-usd";
@@ -33,7 +32,6 @@ const bitcoinBuyThreshold = 76_000;
 const halSettingsKey = "hal-settings";
 const halClockResetKey = "hal-clock-once";
 const allViews: MetricView[] = ["cpu", "memory", "red", "weather", "clock", "bitcoin", "face", "task", "photo"];
-const allThemes: HalTheme[] = ["clasico", "menta", "durazno", "lavanda", "cian", "ambar"];
 
 if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !photoImg || !netLine || !netUpLine || !netArea || !netDownEl || !netUpEl || bars.length !== 5) {
   throw new Error("La interfaz HAL no se pudo inicializar.");
@@ -50,7 +48,6 @@ let metricView: MetricView = "cpu";
 let clockDisplay = "HAL --:--";
 let lastClockMinute = "";
 let halMode: HalMode = "normal";
-let halTheme: HalTheme = "clasico";
 let phrase: string | null = null;
 let task: string | null = null;
 let notice: string | null = null;
@@ -70,16 +67,15 @@ let enabledViews: Record<MetricView, boolean> = {
 };
 
 function saveHalSettings(): void {
-  localStorage.setItem(halSettingsKey, JSON.stringify({ mode: halMode, theme: halTheme, phrase, task, enabledViews }));
+  localStorage.setItem(halSettingsKey, JSON.stringify({ mode: halMode, phrase, task, enabledViews }));
   const disabledViews = allViews.filter((view) => !enabledViews[view]);
-  void invoke("sync_hal_state", { mode: halMode, theme: halTheme, task, disabledViews }).catch(() => undefined);
+  void invoke("sync_hal_state", { mode: halMode, task, disabledViews }).catch(() => undefined);
 }
 
 function loadHalSettings(): void {
   try {
     const saved = JSON.parse(localStorage.getItem(halSettingsKey) ?? "{}") as {
       mode?: HalMode;
-      theme?: string;
       phrase?: string | null;
       task?: string | null;
       enabledViews?: Partial<Record<MetricView, boolean>>;
@@ -87,9 +83,6 @@ function loadHalSettings(): void {
 
     if (["normal", "developer", "focus", "relax", "happy"].includes(saved.mode ?? "")) {
       halMode = saved.mode!;
-    }
-    if (typeof saved.theme === "string" && (allThemes as string[]).includes(saved.theme)) {
-      halTheme = saved.theme as HalTheme;
     }
     phrase = typeof saved.phrase === "string" ? saved.phrase : null;
     task = typeof saved.task === "string" ? saved.task : null;
@@ -99,7 +92,6 @@ function loadHalSettings(): void {
   }
 
   root!.dataset.mode = halMode;
-  root!.dataset.theme = halTheme;
   if (!localStorage.getItem(halClockResetKey)) {
     enabledViews.clock = true;
     localStorage.setItem(halClockResetKey, "1");
@@ -231,7 +223,7 @@ function updateNetwork(): void {
 }
 
 const photoPickKey = "hal-photo-pick";
-const photoRefreshMs = 24 * 60 * 60 * 1000;
+const photoRefreshMs = 6 * 60 * 60 * 1000;
 const defaultPhoto =
   "data:image/svg+xml," +
   encodeURIComponent(
@@ -456,14 +448,6 @@ void listen<HalMode>("evento-modo", (event) => {
   if (["normal", "developer", "focus", "relax", "happy"].includes(event.payload)) {
     halMode = event.payload;
     root!.dataset.mode = halMode;
-    saveHalSettings();
-  }
-});
-
-void listen<HalTheme>("evento-tema", (event) => {
-  if (allThemes.includes(event.payload)) {
-    halTheme = event.payload;
-    root!.dataset.theme = halTheme;
     saveHalSettings();
   }
 });

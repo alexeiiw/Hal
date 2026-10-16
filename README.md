@@ -1,4 +1,4 @@
-# HAL 1.4.0
+# HAL 1.5.0
 
 HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
 
@@ -38,15 +38,11 @@ La vista de red (`/on red`, tambien `net` o `banda`) muestra el ancho de banda e
 
 ## Mascota HAL
 
-La vista de mascota muestra una cabeza SVG con casco redondeado, visor, dos ojos luminosos con brillo y una antena; su lectura es `HAL EN LINEA`. Los modos añaden capucha para developer, lentes para focus, audifonos con notas para relax y, en happy, ojos cerrados, sonrisa y rubor. Todos los trazos usan el color del modo (que a su vez depende del tema), de modo que la cara es estable y no cambia con la carga de CPU. La vista de tarea, en cambio, usa un lente unico estilo HAL con la insignia de prioridad.
-
-## Temas
-
-HAL incluye seis temas de color: `clasico`, `menta`, `durazno`, `lavanda`, `cian` y `ambar`. Cada tema define el tono base y una variante por modo, de modo que developer, focus, relax y happy conservan su identidad dentro del tema elegido. El tema `clasico` mantiene los colores originales de cada modo. Los umbrales (azul en carga media y rojo en carga alta) y la alerta de Bitcoin siempre tienen prioridad sobre el color del tema.
+La vista de mascota muestra una cabeza SVG con casco redondeado, visor, dos ojos luminosos con brillo y una antena; su lectura es `HAL EN LINEA`. Los modos añaden capucha para developer, lentes para focus, audifonos con notas para relax y, en happy, ojos cerrados, sonrisa y rubor. Todos los trazos usan el color del modo, de modo que la cara es estable y no cambia con la carga de CPU. La vista de tarea, en cambio, usa un lente unico estilo HAL con la insignia de prioridad.
 
 ## Fotos
 
-La vista de foto muestra una sola imagen local durante 24 horas: HAL elige una al azar de la carpeta `%APPDATA%\HAL\fotos` y la conserva hasta que pasan 24 horas o la foto desaparece. La foto llena por completo la superficie de HAL, sin marco ni margen: la imagen se estira al area de la ventana para rellenarla entera. La carpeta se crea automaticamente al iniciar. Si esta vacia, si el archivo falla o si no hay fotos validas, HAL muestra una imagen predeterminada con el texto `HAL FOTOS`. Se aceptan imagenes `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp` y `.bmp`.
+La vista de foto muestra una sola imagen local durante 6 horas: HAL elige una al azar de la carpeta `%APPDATA%\HAL\fotos` y la conserva hasta que pasan 6 horas o la foto desaparece. La foto llena por completo la superficie de HAL, sin marco ni margen: la imagen se estira al area de la ventana para rellenarla entera. La carpeta se crea automaticamente al iniciar. Si esta vacia, si el archivo falla o si no hay fotos validas, HAL muestra una imagen predeterminada con el texto `HAL FOTOS`. Se aceptan imagenes `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp` y `.bmp`.
 
 ## Telegram
 
@@ -65,12 +61,12 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | Comando | Funcion |
 | --- | --- |
 | `/pair` | Vincula el primer chat autorizado o confirma la vinculacion actual |
+| `/help` | Muestra la lista completa de comandos |
 | `/inventory` | Muestra las vistas activas y desactivadas, junto a los modos disponibles |
 | `/mode normal` | Paleta y cara original de HAL |
 | `/mode developer` | Capucha y acentos cian |
 | `/mode focus` | Lentes y acentos azules |
 | `/mode relax` | Auriculares y acentos violetas |
-| `/theme clasico` | Tema de color base (tambien `menta`, `durazno`, `lavanda`, `cian` o `ambar`) |
 | `/on nombre` | Activa `cpu`, `ram`, `red`, `clima`, `reloj`, `btc`, `cara`, `tarea` o `foto` |
 | `/off nombre` | Desactiva una vista del ciclo |
 | `/off hal` | Cierra HAL de forma remota |
@@ -84,7 +80,7 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/aviso cancel` | Cancela todos los avisos |
 | `/status` | Confirma que el bot esta vinculado |
 
-Los modos, el tema, las vistas activas, la frase, la tarea y los avisos se guardan localmente en HAL y se conservan al reiniciar. Al cumplirse un aviso, HAL muestra el ojo rojo de HAL con pulso y parpadeo durante 30 segundos y Telegram recibe una confirmacion. `/status` informa CPU, RAM, BTC, modo, tema, tarea y vistas activas. Telegram solo se consulta para recibir comandos; si no hay token o red, HAL sigue funcionando normalmente.
+Los modos, las vistas activas, la frase, la tarea y los avisos se guardan localmente en HAL y se conservan al reiniciar. Al cumplirse un aviso, HAL muestra el ojo rojo de HAL con pulso y parpadeo durante 30 segundos y Telegram recibe una confirmacion. `/status` informa CPU, RAM, BTC, modo, tarea y vistas activas. Telegram solo se consulta para recibir comandos; si no hay token o red, HAL sigue funcionando normalmente.
 
 ## Modo OpenCode
 
@@ -108,8 +104,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.4.0_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_1.4.0_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.5.0_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_1.5.0_x64_en-US.msi`
 
 ## Desarrollo
 
@@ -129,7 +125,7 @@ npm run tauri build
 ## Arquitectura
 
 - `src-tauri/src/main.rs`: mide CPU, RAM, red, procesos y OpenCode una vez por segundo; recibe comandos, mantiene avisos, envia alertas de Telegram y expone las fotos locales.
-- `src/main.ts`: alterna CPU, RAM, red, clima, reloj, Bitcoin, mascota, tarea y foto; conserva modos, tema, vistas, frase y tarea localmente.
+- `src/main.ts`: alterna CPU, RAM, red, clima, reloj, Bitcoin, mascota, tarea y foto; conserva modos, vistas, frase y tarea localmente.
 - `src/style.css`: define el HUD, iconos, anillo de RAM, widget de red, marco de fotos, reloj analogico SVG, mascota por modo, tarea, avisos y estado visual de Bitcoin.
 
 HAL mide la CPU global deliberadamente. La deteccion de OpenCode solo modifica el patron y frecuencia de animacion; no registra actividad, no analiza contenido y no cambia la metrica mostrada. Para el clima, el navegador solicita ubicacion y envia las coordenadas a Open-Meteo; HAL no las guarda. El reloj no realiza llamadas ni crea temporizadores propios: reutiliza el ciclo visual y cambia sus agujas solo al cambiar el minuto. Para Bitcoin, HAL guarda solo el precio, el precio anterior y la fecha de consulta en el almacenamiento local.
