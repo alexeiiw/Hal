@@ -18,10 +18,36 @@ const netUpLine = document.querySelector<SVGPathElement>("#net-up-line");
 const netArea = document.querySelector<SVGPathElement>("#net-area");
 const netDownEl = document.querySelector<HTMLElement>("#net-down");
 const netUpEl = document.querySelector<HTMLElement>("#net-up-num");
-type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo" | "red";
+const copArc = document.querySelector<SVGCircleElement>("#cop-arc");
+const copUsed = document.querySelector<HTMLElement>("#cop-used");
+const copTotal = document.querySelector<HTMLElement>("#cop-total");
+const dsArc = document.querySelector<SVGCircleElement>("#ds-arc");
+const dsBalance = document.querySelector<HTMLElement>("#ds-balance");
+type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo" | "red" | "copilot" | "deepseek";
 type WeatherKind = "clear" | "cloud" | "fog" | "rain" | "snow" | "storm";
 type BitcoinQuote = { price: number; previousPrice: number | null; updatedAt: number };
 type NetworkSample = { down: number; up: number };
+type CopilotStatus = {
+  used: number;
+  total: number;
+  remaining: number;
+  hasQuota: boolean;
+  resetAt: string | null;
+  fetchedAt: number;
+  ok: boolean;
+  error: string | null;
+};
+type DeepSeekStatus = {
+  total: number;
+  granted: number;
+  toppedUp: number;
+  currency: string;
+  available: boolean;
+  alertBelow: number;
+  fetchedAt: number;
+  ok: boolean;
+  error: string | null;
+};
 type HalMode = "normal" | "developer" | "focus" | "relax" | "happy";
 type ViewChange = { view: MetricView; enabled: boolean };
 
@@ -31,9 +57,9 @@ const bitcoinCacheMaxAgeMs = 24 * 60 * 60 * 1000;
 const bitcoinBuyThreshold = 76_000;
 const halSettingsKey = "hal-settings";
 const halClockResetKey = "hal-clock-once";
-const allViews: MetricView[] = ["cpu", "memory", "red", "weather", "clock", "bitcoin", "face", "task", "photo"];
+const allViews: MetricView[] = ["cpu", "memory", "red", "weather", "clock", "bitcoin", "face", "task", "photo", "copilot", "deepseek"];
 
-if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !photoImg || !netLine || !netUpLine || !netArea || !netDownEl || !netUpEl || bars.length !== 5) {
+if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !photoImg || !netLine || !netUpLine || !netArea || !netDownEl || !netUpEl || !copArc || !copUsed || !copTotal || !dsArc || !dsBalance || bars.length !== 5) {
   throw new Error("La interfaz HAL no se pudo inicializar.");
 }
 
@@ -54,6 +80,8 @@ let notice: string | null = null;
 let noticeTimeout = 0;
 let netDownRate = 0;
 let netUpRate = 0;
+let copilot: CopilotStatus | null = null;
+let deepseek: DeepSeekStatus | null = null;
 let enabledViews: Record<MetricView, boolean> = {
   cpu: true,
   memory: true,
@@ -64,6 +92,8 @@ let enabledViews: Record<MetricView, boolean> = {
   face: true,
   task: true,
   photo: true,
+  copilot: true,
+  deepseek: true,
 };
 
 function saveHalSettings(): void {
@@ -185,6 +215,34 @@ function updateGauge(): void {
   const ratio = Math.max(0, Math.min(1, memory / 100));
   gaugeArc!.style.strokeDashoffset = `${gaugeCircumference * (1 - ratio)}`;
   gaugeValue!.textContent = memory.toFixed(0);
+}
+
+const copCircumference = 2 * Math.PI * 42;
+
+function updateCopilot(): void {
+  const ok = copilot?.ok === true;
+  const used = ok ? Math.round(copilot!.used) : 0;
+  const total = ok ? Math.round(copilot!.total) : 0;
+  const ratio = total > 0 ? Math.min(1, Math.max(0, used / total)) : 0;
+  copArc!.style.strokeDashoffset = `${copCircumference * (1 - ratio)}`;
+  copUsed!.textContent = ok ? String(used) : "--";
+  copTotal!.textContent = total > 0 ? String(total) : "--";
+}
+
+const dsCircumference = 2 * Math.PI * 42;
+
+function formatMoney(value: number, currency: string): string {
+  const symbol = currency === "CNY" ? "¥" : "$";
+  return `${symbol}${value.toFixed(2)}`;
+}
+
+function updateDeepSeek(): void {
+  const ok = deepseek?.ok === true;
+  const alert = ok ? Math.max(0.01, deepseek!.alertBelow) : 1;
+  const balance = ok ? Math.max(0, deepseek!.total) : 0;
+  const ratio = Math.min(1, balance / (alert * 2));
+  dsArc!.style.strokeDashoffset = `${dsCircumference * (1 - ratio)}`;
+  dsBalance!.textContent = ok ? formatMoney(balance, deepseek!.currency) : "--";
 }
 
 const netHistory: NetworkSample[] = [];
@@ -347,6 +405,30 @@ function currentMetric(): {
     };
   }
 
+  if (metricView === "copilot") {
+    if (!copilot || !copilot.ok) {
+      return { display: copilot?.error ?? "COPILOT NO DISP.", value: 0, busyAt: 101, criticalAt: 102 };
+    }
+
+    const used = Math.round(copilot.used);
+    const total = Math.round(copilot.total);
+    const ratio = total > 0 ? Math.min(100, (used / total) * 100) : 0;
+    return { display: `COPILOT ${used}/${total}`, value: ratio, busyAt: 70, criticalAt: 90 };
+  }
+
+  if (metricView === "deepseek") {
+    if (!deepseek || !deepseek.ok) {
+      return { display: deepseek?.error ?? "DEEPSEEK NO DISP.", value: 0, busyAt: 101, criticalAt: 102 };
+    }
+
+    return {
+      display: `DEEPSEEK ${formatMoney(deepseek.total, deepseek.currency)}`,
+      value: 0,
+      busyAt: 101,
+      criticalAt: 102,
+    };
+  }
+
   return weather
     ? {
         display: `${weather.temperature.toFixed(0)} C ${weatherLabel(weather.code)}`,
@@ -371,7 +453,7 @@ function animateBars(): void {
   const globalTempo = overloaded ? 110 : busy ? 220 : 460;
   const waveTempo = Math.max(60, 440 / (1 + opencodeCpu * 0.15));
   const showOpenCodeWave = metricView === "cpu" && opencodeActive;
-  const staticView = notice !== null || metricView === "clock" || metricView === "bitcoin" || metricView === "face" || metricView === "task" || metricView === "memory" || metricView === "photo" || metricView === "red" || (metricView === "weather" && weather !== null);
+  const staticView = notice !== null || metricView === "clock" || metricView === "bitcoin" || metricView === "face" || metricView === "task" || metricView === "memory" || metricView === "photo" || metricView === "red" || metricView === "copilot" || metricView === "deepseek" || (metricView === "weather" && weather !== null);
   const tempo = staticView ? 1000 : showOpenCodeWave ? waveTempo : globalTempo;
 
   root!.classList.toggle("overloaded", overloaded);
@@ -385,12 +467,21 @@ function animateBars(): void {
   root!.classList.toggle("task-view", metricView === "task");
   root!.classList.toggle("photo-view", metricView === "photo");
   root!.classList.toggle("red-view", metricView === "red");
+  root!.classList.toggle("copilot-view", metricView === "copilot");
+  root!.classList.toggle("cop-error", metricView === "copilot" && (!copilot || !copilot.ok));
+  root!.classList.toggle("cop-empty", metricView === "copilot" && !!copilot && copilot.ok && (!copilot.hasQuota || copilot.used >= copilot.total));
+  root!.classList.toggle("deepseek-view", metricView === "deepseek");
+  root!.classList.toggle("ds-error", metricView === "deepseek" && (!deepseek || !deepseek.ok));
+  root!.classList.toggle("ds-low", metricView === "deepseek" && !!deepseek && deepseek.ok && deepseek.total > deepseek.alertBelow && deepseek.total <= deepseek.alertBelow * 2);
+  root!.classList.toggle("ds-empty", metricView === "deepseek" && !!deepseek && deepseek.ok && (!deepseek.available || deepseek.total <= deepseek.alertBelow));
   root!.classList.toggle("notice-active", notice !== null);
   const quote = bitcoinQuote();
   root!.classList.toggle("btc-alert", metricView === "bitcoin" && !!quote && quote.price <= bitcoinBuyThreshold);
   root!.classList.toggle("btc-up", metricView === "bitcoin" && !!quote && bitcoinDirection(quote) === "up");
   root!.classList.toggle("btc-down", metricView === "bitcoin" && !!quote && bitcoinDirection(quote) === "down");
   updateGauge();
+  updateCopilot();
+  updateDeepSeek();
   root!.style.setProperty("--tempo", `${tempo}ms`);
   metricOutput!.value = metric.display;
   metricOutput!.textContent = metricOutput!.value;
@@ -442,6 +533,14 @@ void listen<NetworkSample>("evento-red", (event) => {
   netHistory.push({ down: netDownRate, up: netUpRate });
   if (netHistory.length > netHistorySize) netHistory.shift();
   updateNetwork();
+});
+
+void listen<CopilotStatus>("evento-copilot", (event) => {
+  copilot = event.payload;
+});
+
+void listen<DeepSeekStatus>("evento-deepseek", (event) => {
+  deepseek = event.payload;
 });
 
 void listen<HalMode>("evento-modo", (event) => {

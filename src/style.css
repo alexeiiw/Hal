@@ -58,7 +58,9 @@ output {
 .btc-icon,
 .hal-face,
 .task-face,
-.w-gauge {
+.w-gauge,
+.w-copilot,
+.w-deepseek {
   grid-area: 1 / 1;
 }
 
@@ -177,6 +179,105 @@ output {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   letter-spacing: 0.02em;
+  text-shadow: 0 0 8px var(--glow);
+}
+
+.w-copilot {
+  place-self: center;
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.w-copilot svg {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.w-cop-track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--bar-color) 22%, transparent);
+  stroke-width: 8;
+}
+
+.w-cop-arc {
+  fill: none;
+  stroke: var(--bar-color);
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 263.89;
+  stroke-dashoffset: 263.89;
+  filter: drop-shadow(0 0 5px var(--glow)) drop-shadow(0 0 10px var(--glow));
+  transition: stroke-dashoffset var(--tempo, 1000ms) ease-out, stroke 160ms ease;
+}
+
+.w-cop-num {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: baseline;
+  color: var(--text-color);
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-shadow: 0 0 8px var(--glow);
+}
+
+.w-cop-num small {
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0;
+  opacity: 0.8;
+}
+
+.w-deepseek {
+  place-self: center;
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+
+.w-deepseek svg {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.w-ds-track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--bar-color) 22%, transparent);
+  stroke-width: 8;
+}
+
+.w-ds-arc {
+  fill: none;
+  stroke: var(--bar-color);
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 263.89;
+  stroke-dashoffset: 263.89;
+  filter: drop-shadow(0 0 5px var(--glow)) drop-shadow(0 0 10px var(--glow));
+  transition: stroke-dashoffset var(--tempo, 1000ms) ease-out, stroke 160ms ease;
+}
+
+.w-ds-num {
+  grid-area: 1 / 1;
+  color: var(--text-color);
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   text-shadow: 0 0 8px var(--glow);
 }
 
@@ -563,6 +664,22 @@ output {
   opacity: 1;
 }
 
+#hal.copilot-view .equalizer {
+  opacity: 0;
+}
+
+#hal.copilot-view .w-copilot {
+  opacity: 1;
+}
+
+#hal.deepseek-view .equalizer {
+  opacity: 0;
+}
+
+#hal.deepseek-view .w-deepseek {
+  opacity: 1;
+}
+
 #hal.photo-view .equalizer {
   opacity: 0;
 }
@@ -591,6 +708,9 @@ output {
 #hal.notice-active .btc-icon,
 #hal.notice-active .hal-face,
 #hal.notice-active .w-gauge,
+#hal.notice-active .w-net,
+#hal.notice-active .w-copilot,
+#hal.notice-active .w-deepseek,
 #hal.notice-active .w-photo {
   opacity: 0;
 }
@@ -614,6 +734,41 @@ output {
 
 #hal.notice-active output {
   color: #facc15;
+}
+
+#hal.cop-error output {
+  color: #facc15;
+}
+
+#hal.copilot-view.cop-empty .w-cop-arc {
+  stroke: #ef4444;
+  filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.8)) drop-shadow(0 0 10px rgba(239, 68, 68, 0.8));
+}
+
+#hal.copilot-view.cop-empty .w-cop-num {
+  color: #fee2e2;
+}
+
+#hal.ds-error output {
+  color: #facc15;
+}
+
+#hal.deepseek-view.ds-low .w-ds-arc {
+  stroke: #facc15;
+  filter: drop-shadow(0 0 5px rgba(250, 204, 21, 0.75)) drop-shadow(0 0 10px rgba(250, 204, 21, 0.75));
+}
+
+#hal.deepseek-view.ds-low .w-ds-num {
+  color: #fef9c3;
+}
+
+#hal.deepseek-view.ds-empty .w-ds-arc {
+  stroke: #ef4444;
+  filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.8)) drop-shadow(0 0 10px rgba(239, 68, 68, 0.8));
+}
+
+#hal.deepseek-view.ds-empty .w-ds-num {
+  color: #fee2e2;
 }
 
 @keyframes notice-ring {

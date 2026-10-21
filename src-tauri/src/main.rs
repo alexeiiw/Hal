@@ -36,6 +36,82 @@ struct BitcoinStatus {
     price: Option<f64>,
 }
 
+#[derive(Default, Deserialize)]
+#[serde(default)]
+struct CopilotConfig {
+    token: String,
+    refresh_minutes: Option<u64>,
+}
+
+#[derive(Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CopilotStatus {
+    used: f64,
+    total: f64,
+    remaining: f64,
+    has_quota: bool,
+    reset_at: Option<String>,
+    fetched_at: i64,
+    ok: bool,
+    error: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct CopilotUserResponse {
+    quota_reset_date_utc: Option<String>,
+    quota_snapshots: Option<CopilotSnapshots>,
+}
+
+#[derive(Deserialize)]
+struct CopilotSnapshots {
+    premium_interactions: Option<CopilotQuota>,
+}
+
+#[derive(Default, Deserialize)]
+#[serde(default)]
+struct CopilotQuota {
+    entitlement: f64,
+    credits_used: f64,
+    remaining: f64,
+    has_quota: bool,
+}
+
+#[derive(Default, Deserialize)]
+#[serde(default)]
+struct DeepSeekConfig {
+    api_key: String,
+    refresh_minutes: Option<u64>,
+    alert_below: Option<f64>,
+}
+
+#[derive(Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DeepSeekStatus {
+    total: f64,
+    granted: f64,
+    topped_up: f64,
+    currency: String,
+    available: bool,
+    alert_below: f64,
+    fetched_at: i64,
+    ok: bool,
+    error: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct DeepSeekBalanceResponse {
+    is_available: Option<bool>,
+    balance_infos: Option<Vec<DeepSeekBalanceInfo>>,
+}
+
+#[derive(Deserialize)]
+struct DeepSeekBalanceInfo {
+    currency: Option<String>,
+    total_balance: Option<String>,
+    granted_balance: Option<String>,
+    topped_up_balance: Option<String>,
+}
+
 #[derive(Clone, Serialize)]
 struct NetworkSample {
     down: f64,
@@ -99,6 +175,28 @@ fn telegram_config_path() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("."))
         .join("HAL")
         .join("telegram.json")
+}
+
+fn copilot_config_path() -> PathBuf {
+    telegram_config_path().with_file_name("copilot.json")
+}
+
+fn load_copilot_config() -> CopilotConfig {
+    fs::read_to_string(copilot_config_path())
+        .ok()
+        .and_then(|content| serde_json::from_str(&content).ok())
+        .unwrap_or_default()
+}
+
+fn deepseek_config_path() -> PathBuf {
+    telegram_config_path().with_file_name("deepseek.json")
+}
+
+fn load_deepseek_config() -> DeepSeekConfig {
+    fs::read_to_string(deepseek_config_path())
+        .ok()
+        .and_then(|content| serde_json::from_str(&content).ok())
+        .unwrap_or_default()
 }
 
 fn reminders_path() -> PathBuf {
@@ -241,7 +339,9 @@ async fn bitcoin_price(client: &reqwest::Client) -> Option<f64> {
 }
 
 fn inventory_status(config: &TelegramConfig) -> String {
-    let views = ["cpu", "ram", "red", "clima", "reloj", "btc", "cara", "tarea", "foto"];
+    let views = [
+        "cpu", "ram", "red", "clima", "reloj", "btc", "cara", "tarea", "foto", "cop", "ds",
+    ];
     let active = views
         .iter()
         .filter(|view| {
@@ -254,6 +354,8 @@ fn inventory_status(config: &TelegramConfig) -> String {
                 "cara" => "face",
                 "tarea" => "task",
                 "foto" => "photo",
+                "cop" => "copilot",
+                "ds" => "deepseek",
                 view => view,
             };
             !config
@@ -325,6 +427,8 @@ async fn handle_telegram_command(
     config: &mut TelegramConfig,
     system_status: &Arc<Mutex<SystemStatus>>,
     bitcoin_status: &Arc<Mutex<BitcoinStatus>>,
+    copilot_status: &Arc<Mutex<CopilotStatus>>,
+    deepseek_status: &Arc<Mutex<DeepSeekStatus>>,
     message: TelegramMessage,
 ) {
     let chat_id = message.chat.id;
@@ -376,7 +480,7 @@ async fn handle_telegram_command(
     }
 
     let response = if text == "/help" || text == "/start" {
-        "Comandos:\n/help\n/pair\n/status\n/inventory\n/mode normal|developer|focus|relax|happy\n/on nombre (cpu, ram, red, clima, reloj, btc, cara, tarea, foto)\n/off nombre\n/off hal\n/phrase texto | /phrase clear\n/task texto | /task clear\n/aviso 10 o 08:00\n/aviso list | /aviso cancel"
+        "Comandos:\n/help\n/pair\n/status\n/inventory\n/mode normal|developer|focus|relax|happy\n/on nombre (cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop, ds)\n/off nombre\n/off hal\n/phrase texto | /phrase clear\n/task texto | /task clear\n/aviso 10 o 08:00\n/aviso list | /aviso cancel"
             .to_string()
     } else if text == "/inventory" {
         format!(
@@ -402,12 +506,47 @@ async fn handle_telegram_command(
         } else {
             "BTC NO DISP.".to_string()
         };
+        let copilot = copilot_status
+            .lock()
+            .map(|status| status.clone())
+            .unwrap_or_default();
+        let copilot_line = if copilot.ok {
+            format!(
+                "Copilot: {:.0}/{:.0}{}",
+                copilot.used,
+                copilot.total,
+                if copilot.has_quota { "" } else { " (agotado)" }
+            )
+        } else {
+            format!(
+                "Copilot: {}",
+                copilot.error.unwrap_or_else(|| "no disponible".to_string())
+            )
+        };
+        let deepseek = deepseek_status
+            .lock()
+            .map(|status| status.clone())
+            .unwrap_or_default();
+        let deepseek_line = if deepseek.ok {
+            format!(
+                "DeepSeek: {}{:.2}",
+                if deepseek.currency == "CNY" { "¥" } else { "$" },
+                deepseek.total
+            )
+        } else {
+            format!(
+                "DeepSeek: {}",
+                deepseek.error.unwrap_or_else(|| "no disponible".to_string())
+            )
+        };
         let task = config.task.as_deref().unwrap_or("sin tarea");
         format!(
-            "CPU {:.1}% | RAM {:.1}%\n{}\nModo: {}\nTarea: {}\n{}",
+            "CPU {:.1}% | RAM {:.1}%\n{}\n{}\n{}\nModo: {}\nTarea: {}\n{}",
             status.cpu,
             status.memory,
             bitcoin,
+            copilot_line,
+            deepseek_line,
             if config.mode.is_empty() {
                 "normal"
             } else {
@@ -509,11 +648,14 @@ fn set_view(
         "tarea" => "task",
         "foto" => "photo",
         "net" | "banda" => "red",
+        "cop" | "copilot" => "copilot",
+        "ds" | "deepseek" => "deepseek",
         view => view,
     };
 
     match view {
-        "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo" | "red" => {
+        "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo" | "red"
+        | "copilot" | "deepseek" => {
             if enabled {
                 config.disabled_views.retain(|disabled| disabled != view);
             } else if !config
@@ -536,7 +678,8 @@ fn set_view(
                 if enabled { "activada" } else { "desactivada" }
             )
         }
-        _ => "Vista inválida. Usa cpu, ram, clima, reloj, btc, cara, tarea, foto o red.".to_string(),
+        _ => "Vista inválida. Usa cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop o ds."
+            .to_string(),
     }
 }
 
@@ -544,6 +687,8 @@ async fn run_telegram(
     app: tauri::AppHandle,
     system_status: Arc<Mutex<SystemStatus>>,
     bitcoin_status: Arc<Mutex<BitcoinStatus>>,
+    copilot_status: Arc<Mutex<CopilotStatus>>,
+    deepseek_status: Arc<Mutex<DeepSeekStatus>>,
 ) {
     let path = telegram_config_path();
     let Some(mut config) = load_telegram_config(&path) else {
@@ -555,7 +700,7 @@ async fn run_telegram(
     }
 
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.5")
+        .user_agent("HAL/1.6")
         .build()
         .expect("failed to create Telegram client");
 
@@ -599,6 +744,8 @@ async fn run_telegram(
                     &mut config,
                     &system_status,
                     &bitcoin_status,
+                    &copilot_status,
+                    &deepseek_status,
                     message,
                 )
                 .await;
@@ -652,9 +799,165 @@ fn run_reminder_watcher(app: tauri::AppHandle) {
     });
 }
 
+async fn fetch_copilot(client: &reqwest::Client, token: &str) -> Result<CopilotStatus, String> {
+    let response = client
+        .get("https://api.github.com/copilot_internal/user")
+        .bearer_auth(token)
+        .header("Accept", "application/vnd.github+json")
+        .send()
+        .await
+        .map_err(|_| "SIN CONEXION".to_string())?;
+
+    if response.status() == reqwest::StatusCode::UNAUTHORIZED {
+        return Err("TOKEN VENCIDO".to_string());
+    }
+    if !response.status().is_success() {
+        return Err("NO DISP.".to_string());
+    }
+
+    let data = response
+        .json::<CopilotUserResponse>()
+        .await
+        .map_err(|_| "RESPUESTA INVALIDA".to_string())?;
+    let quota = data
+        .quota_snapshots
+        .and_then(|snapshots| snapshots.premium_interactions)
+        .ok_or_else(|| "SIN CUOTA".to_string())?;
+
+    Ok(CopilotStatus {
+        used: quota.credits_used,
+        total: quota.entitlement,
+        remaining: quota.remaining,
+        has_quota: quota.has_quota,
+        reset_at: data.quota_reset_date_utc,
+        fetched_at: Utc::now().timestamp(),
+        ok: true,
+        error: None,
+    })
+}
+
+async fn run_copilot(app: tauri::AppHandle, status: Arc<Mutex<CopilotStatus>>) {
+    let client = reqwest::Client::builder()
+        .user_agent("HAL/1.6")
+        .build()
+        .expect("failed to create Copilot client");
+
+    loop {
+        let config = load_copilot_config();
+        let minutes = config.refresh_minutes.unwrap_or(30).clamp(1, 1_440);
+        let snapshot = if config.token.trim().is_empty() {
+            CopilotStatus {
+                ok: false,
+                error: Some("SIN TOKEN".to_string()),
+                ..Default::default()
+            }
+        } else {
+            match fetch_copilot(&client, config.token.trim()).await {
+                Ok(snapshot) => snapshot,
+                Err(error) => CopilotStatus {
+                    ok: false,
+                    error: Some(error),
+                    ..Default::default()
+                },
+            }
+        };
+
+        if let Ok(mut guard) = status.lock() {
+            *guard = snapshot.clone();
+        }
+        let _ = app.emit("evento-copilot", snapshot);
+        tokio::time::sleep(Duration::from_secs(minutes * 60)).await;
+    }
+}
+
+async fn fetch_deepseek(
+    client: &reqwest::Client,
+    api_key: &str,
+    alert_below: f64,
+) -> Result<DeepSeekStatus, String> {
+    let response = client
+        .get("https://api.deepseek.com/user/balance")
+        .bearer_auth(api_key)
+        .header("Accept", "application/json")
+        .send()
+        .await
+        .map_err(|_| "SIN CONEXION".to_string())?;
+
+    if response.status() == reqwest::StatusCode::UNAUTHORIZED {
+        return Err("API KEY INVALIDA".to_string());
+    }
+    if !response.status().is_success() {
+        return Err("NO DISP.".to_string());
+    }
+
+    let data = response
+        .json::<DeepSeekBalanceResponse>()
+        .await
+        .map_err(|_| "RESPUESTA INVALIDA".to_string())?;
+    let info = data
+        .balance_infos
+        .and_then(|infos| infos.into_iter().next())
+        .ok_or_else(|| "SIN SALDO".to_string())?;
+
+    let parse = |value: Option<String>| {
+        value
+            .and_then(|amount| amount.trim().parse::<f64>().ok())
+            .unwrap_or(0.0)
+    };
+
+    Ok(DeepSeekStatus {
+        total: parse(info.total_balance),
+        granted: parse(info.granted_balance),
+        topped_up: parse(info.topped_up_balance),
+        currency: info.currency.unwrap_or_else(|| "USD".to_string()),
+        available: data.is_available.unwrap_or(true),
+        alert_below,
+        fetched_at: Utc::now().timestamp(),
+        ok: true,
+        error: None,
+    })
+}
+
+async fn run_deepseek(app: tauri::AppHandle, status: Arc<Mutex<DeepSeekStatus>>) {
+    let client = reqwest::Client::builder()
+        .user_agent("HAL/1.6")
+        .build()
+        .expect("failed to create DeepSeek client");
+
+    loop {
+        let config = load_deepseek_config();
+        let minutes = config.refresh_minutes.unwrap_or(30).clamp(1, 1_440);
+        let alert_below = config.alert_below.unwrap_or(1.0).max(0.0);
+        let snapshot = if config.api_key.trim().is_empty() {
+            DeepSeekStatus {
+                ok: false,
+                error: Some("SIN API KEY".to_string()),
+                alert_below,
+                ..Default::default()
+            }
+        } else {
+            match fetch_deepseek(&client, config.api_key.trim(), alert_below).await {
+                Ok(snapshot) => snapshot,
+                Err(error) => DeepSeekStatus {
+                    ok: false,
+                    error: Some(error),
+                    alert_below,
+                    ..Default::default()
+                },
+            }
+        };
+
+        if let Ok(mut guard) = status.lock() {
+            *guard = snapshot.clone();
+        }
+        let _ = app.emit("evento-deepseek", snapshot);
+        tokio::time::sleep(Duration::from_secs(minutes * 60)).await;
+    }
+}
+
 async fn run_bitcoin_alert(app: tauri::AppHandle, bitcoin_status: Arc<Mutex<BitcoinStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.5")
+        .user_agent("HAL/1.6")
         .build()
         .expect("failed to create Bitcoin client");
     let mut was_below_threshold = false;
@@ -709,6 +1012,8 @@ fn main() {
 
             let system_status = Arc::new(Mutex::new(SystemStatus::default()));
             let bitcoin_status = Arc::new(Mutex::new(BitcoinStatus::default()));
+            let copilot_status = Arc::new(Mutex::new(CopilotStatus::default()));
+            let deepseek_status = Arc::new(Mutex::new(DeepSeekStatus::default()));
             let monitor_status = system_status.clone();
             let app_handle = app.handle().clone();
             thread::spawn(move || {
@@ -788,9 +1093,13 @@ fn main() {
                 app.handle().clone(),
                 system_status,
                 bitcoin_status.clone(),
+                copilot_status.clone(),
+                deepseek_status.clone(),
             ));
             run_reminder_watcher(app.handle().clone());
             tauri::async_runtime::spawn(run_bitcoin_alert(app.handle().clone(), bitcoin_status));
+            tauri::async_runtime::spawn(run_copilot(app.handle().clone(), copilot_status));
+            tauri::async_runtime::spawn(run_deepseek(app.handle().clone(), deepseek_status));
 
             Ok(())
         })

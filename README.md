@@ -1,6 +1,6 @@
-# HAL 1.5.0
+# HAL 1.6.0
 
-HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
+HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, creditos de GitHub Copilot, saldo de DeepSeek, tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
 
 ## Comportamiento
 
@@ -8,11 +8,13 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, re
 - Permanece sobre otras ventanas, pero los clics atraviesan HAL hacia la aplicacion de debajo.
 - Se coloca abajo a la derecha del area util del monitor.
 - Se muestra como un HUD sin borde, fondo ni panel de cristal para dar prioridad a los iconos.
-- Alterna CPU global, RAM principal, red, clima, reloj analogico, Bitcoin, mascota HAL y foto cada cuatro segundos; añade tarea prioritaria si esta definida.
+- Alterna CPU global, RAM principal, red, clima, reloj analogico, Bitcoin, Copilot, DeepSeek, mascota HAL y foto cada cuatro segundos; añade tarea prioritaria si esta definida.
 - Muestra la RAM como un anillo de progreso con el porcentaje en el centro.
 - Detecta la ejecucion de `OpenCode.exe` y, en la vista de CPU, sustituye el ecualizador por una onda sinusoidal SVG sin cambiar la metrica global.
 - Consulta la temperatura y condicion meteorologica al iniciar y cada 30 minutos mediante Open-Meteo.
 - Solicita la ubicacion del sistema para el clima. Si se deniega el permiso o falla la consulta, muestra `CLIMA NO DISP.`.
+- Consulta los creditos de Copilot al iniciar y cada 30 minutos desde `%APPDATA%\HAL\copilot.json`.
+- Consulta el saldo de DeepSeek al iniciar y cada 30 minutos desde `%APPDATA%\HAL\deepseek.json`.
 
 | Vista | Umbral medio | Umbral alto | Colores |
 | --- | --- | --- | --- |
@@ -22,6 +24,8 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, re
 | Clima | No aplica | No aplica | Semantico segun la condicion |
 | Reloj | No aplica | No aplica | Esfera tecnica verde de HAL |
 | Bitcoin | No aplica | $76,000 USD | Naranja, verde/rojo y alerta roja |
+| Copilot | 70% usado | 90% usado | Anillo en el color del modo, azul y rojo |
+| DeepSeek | No aplica | `alert_below` | Anillo y saldo en el color del modo, amarillo y rojo |
 | Mascota HAL | No aplica | No aplica | Cabeza con visor, ojos, brillo y antena en el color del modo |
 | Tarea | No aplica | No aplica | Lente unico estilo HAL con insignia de prioridad |
 | Foto | No aplica | No aplica | Foto local a pantalla completa |
@@ -35,6 +39,50 @@ HAL consulta BTC/USD en CoinGecko al iniciar y cada seis horas. Guarda localment
 ## Red
 
 La vista de red (`/on red`, tambien `net` o `banda`) muestra el ancho de banda en tiempo real: la velocidad de descarga y de subida en MB/s, con una onda solida para la bajada y una onda punteada celeste para la subida. Los datos se obtienen de forma nativa con `sysinfo` (`Networks`), sumando todas las interfaces y calculando el delta por segundo, sin dependencias nuevas. Se actualiza una vez por segundo.
+
+## Copilot
+
+La vista Copilot (`/on cop`, tambien `copilot`) muestra los creditos de GitHub AI del plan personal como `usados / total` (por ejemplo `1519 / 1500`), con un anillo que se llena segun el consumo. El anillo y la lectura usan el color del modo activo (normal verde, developer cian, focus azul, relax violeta, happy amarillo); al 70 % usado pasan a azul y al 90 % a rojo, y si los creditos se agotan o GitHub deja de otorgar cuota, la vista queda en rojo. Los datos se consultan al iniciar y cada 30 minutos.
+
+HAL lee la configuracion de `%APPDATA%\HAL\copilot.json`:
+
+```json
+{
+  "token": "ghp_...",
+  "refresh_minutes": 30
+}
+```
+
+`refresh_minutes` es opcional (1 a 1440; por defecto 30). El archivo esta fuera del proyecto y no se publica en Git. Para generar el token:
+
+1. Abre `https://github.com/settings/tokens/new` (token clasico).
+2. Marca solo el permiso `read:user`.
+3. Define una expiracion (por ejemplo 90 dias) y genera el token.
+4. Copia el valor `ghp_...` en el campo `token` de `copilot.json` y reinicia HAL.
+
+Cuando el token vence o se revoca, la vista muestra `TOKEN VENCIDO`. Genera uno nuevo y reemplaza el campo `token`; HAL relee el archivo en cada ciclo, asi que no hace falta reiniciar. La consulta usa el endpoint interno `GET https://api.github.com/copilot_internal/user`, el mismo que usan los clientes de Copilot: no esta documentado oficialmente, puede cambiar sin aviso y solo devuelve datos del plan personal (no creditos facturados a una organizacion o empresa). Si falla, la vista muestra `NO DISP.` y el resto de HAL sigue funcionando. El token se envia solo en la cabecera `Authorization` y nunca se registra en logs.
+
+## DeepSeek
+
+La vista DeepSeek (`/on ds`, tambien `deepseek`) muestra el saldo disponible de la cuenta de platform.deepseek.com como `$1.78`, con un anillo que representa la distancia hasta el umbral de aviso. El anillo y la lectura usan el color del modo activo; al acercarse al umbral pasan a amarillo y, por debajo de el o si la cuenta no puede operar, a rojo. Lo que se muestra es `total_balance` (saldo de regalo mas saldo recargado), no el saldo de regalo por separado. Los datos se consultan al iniciar y cada 30 minutos.
+
+HAL lee la configuracion de `%APPDATA%\HAL\deepseek.json`:
+
+```json
+{
+  "api_key": "sk-...",
+  "refresh_minutes": 30,
+  "alert_below": 2
+}
+```
+
+`refresh_minutes` es opcional (1 a 1440; por defecto 30) y `alert_below` es el umbral en la moneda de la cuenta para el aviso (por defecto 1). El archivo esta fuera del proyecto y no se publica en Git. Para generar la clave:
+
+1. Abre `https://platform.deepseek.com/api_keys`.
+2. Crea una clave de API y copiala en el momento (solo se muestra una vez).
+3. Pega el valor `sk-...` en el campo `api_key` de `deepseek.json` y reinicia HAL.
+
+La consulta usa el endpoint oficial `GET https://api.deepseek.com/user/balance` con la cabecera `Authorization`; devuelve `is_available`, `total_balance`, `granted_balance` y `topped_up_balance` en USD o CNY. Si la clave no es valida, la vista muestra `API KEY INVALIDA`; si no hay conexion, `SIN CONEXION`. HAL relee `deepseek.json` en cada ciclo, de modo que una clave nueva no requiere reiniciar. La clave se envia solo a `api.deepseek.com` y nunca se registra en logs.
 
 ## Mascota HAL
 
@@ -67,7 +115,7 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/mode developer` | Capucha y acentos cian |
 | `/mode focus` | Lentes y acentos azules |
 | `/mode relax` | Auriculares y acentos violetas |
-| `/on nombre` | Activa `cpu`, `ram`, `red`, `clima`, `reloj`, `btc`, `cara`, `tarea` o `foto` |
+| `/on nombre` | Activa `cpu`, `ram`, `red`, `clima`, `reloj`, `btc`, `cara`, `tarea`, `foto`, `cop` o `ds` |
 | `/off nombre` | Desactiva una vista del ciclo |
 | `/off hal` | Cierra HAL de forma remota |
 | `/phrase texto` | Define una frase de hasta 30 caracteres para la mascota |
@@ -78,9 +126,9 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/aviso 08:00` | Programa un aviso para la proxima hora local 08:00 |
 | `/aviso list` | Lista los avisos activos |
 | `/aviso cancel` | Cancela todos los avisos |
-| `/status` | Confirma que el bot esta vinculado |
+| `/status` | Informa CPU, RAM, BTC, Copilot, DeepSeek, modo, tarea y vistas activas |
 
-Los modos, las vistas activas, la frase, la tarea y los avisos se guardan localmente en HAL y se conservan al reiniciar. Al cumplirse un aviso, HAL muestra el ojo rojo de HAL con pulso y parpadeo durante 30 segundos y Telegram recibe una confirmacion. `/status` informa CPU, RAM, BTC, modo, tarea y vistas activas. Telegram solo se consulta para recibir comandos; si no hay token o red, HAL sigue funcionando normalmente.
+Los modos, las vistas activas, la frase, la tarea y los avisos se guardan localmente en HAL y se conservan al reiniciar. Al cumplirse un aviso, HAL muestra el ojo rojo de HAL con pulso y parpadeo durante 30 segundos y Telegram recibe una confirmacion. `/status` informa CPU, RAM, BTC, Copilot, DeepSeek, modo, tarea y vistas activas. Telegram solo se consulta para recibir comandos; si no hay token o red, HAL sigue funcionando normalmente. La vista Copilot se controla igual con `/on cop` y `/off cop`, y su token se guarda aparte en `copilot.json`; la vista DeepSeek usa `/on ds` y su clave se guarda en `deepseek.json`.
 
 ## Modo OpenCode
 
@@ -104,8 +152,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.5.0_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_1.5.0_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.6.0_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_1.6.0_x64_en-US.msi`
 
 ## Desarrollo
 
@@ -124,8 +172,8 @@ npm run tauri build
 
 ## Arquitectura
 
-- `src-tauri/src/main.rs`: mide CPU, RAM, red, procesos y OpenCode una vez por segundo; recibe comandos, mantiene avisos, envia alertas de Telegram y expone las fotos locales.
-- `src/main.ts`: alterna CPU, RAM, red, clima, reloj, Bitcoin, mascota, tarea y foto; conserva modos, vistas, frase y tarea localmente.
-- `src/style.css`: define el HUD, iconos, anillo de RAM, widget de red, marco de fotos, reloj analogico SVG, mascota por modo, tarea, avisos y estado visual de Bitcoin.
+- `src-tauri/src/main.rs`: mide CPU, RAM, red, procesos y OpenCode una vez por segundo; recibe comandos, mantiene avisos, envia alertas de Telegram, consulta los creditos de Copilot y el saldo de DeepSeek, y expone las fotos locales.
+- `src/main.ts`: alterna CPU, RAM, red, clima, reloj, Bitcoin, Copilot, DeepSeek, mascota, tarea y foto; conserva modos, vistas, frase y tarea localmente.
+- `src/style.css`: define el HUD, iconos, anillo de RAM, widget de red, anillos de Copilot y DeepSeek, marco de fotos, reloj analogico SVG, mascota por modo, tarea, avisos y estado visual de Bitcoin.
 
-HAL mide la CPU global deliberadamente. La deteccion de OpenCode solo modifica el patron y frecuencia de animacion; no registra actividad, no analiza contenido y no cambia la metrica mostrada. Para el clima, el navegador solicita ubicacion y envia las coordenadas a Open-Meteo; HAL no las guarda. El reloj no realiza llamadas ni crea temporizadores propios: reutiliza el ciclo visual y cambia sus agujas solo al cambiar el minuto. Para Bitcoin, HAL guarda solo el precio, el precio anterior y la fecha de consulta en el almacenamiento local.
+HAL mide la CPU global deliberadamente. La deteccion de OpenCode solo modifica el patron y frecuencia de animacion; no registra actividad, no analiza contenido y no cambia la metrica mostrada. Para el clima, el navegador solicita ubicacion y envia las coordenadas a Open-Meteo; HAL no las guarda. El reloj no realiza llamadas ni crea temporizadores propios: reutiliza el ciclo visual y cambia sus agujas solo al cambiar el minuto. Para Bitcoin, HAL guarda solo el precio, el precio anterior y la fecha de consulta en el almacenamiento local. Para Copilot, HAL lee `%APPDATA%\HAL\copilot.json` y consulta `api.github.com` con el token del usuario; no envia esos datos a ningun otro servicio. Para DeepSeek, HAL lee `%APPDATA%\HAL\deepseek.json` y consulta `api.deepseek.com` con la clave del usuario; tampoco envia esos datos a otros servicios.

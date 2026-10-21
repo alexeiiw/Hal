@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.6.0
+
+- Añade la vista Copilot (`/on cop`, alias `copilot`) con los creditos de GitHub AI usados y el total en un anillo.
+- Consulta `https://api.github.com/copilot_internal/user` al iniciar y cada 30 minutos con el token de `%APPDATA%\HAL\copilot.json`.
+- Colorea el anillo con el tono del modo y lo cambia a azul al 70 % usado y a rojo al 90 % o al agotarse la cuota.
+- Muestra `TOKEN VENCIDO`, `SIN TOKEN`, `NO DISP.` o `SIN CUOTA` cuando la consulta no puede completarse.
+- Relee `copilot.json` en cada ciclo, de modo que un token nuevo no requiere reiniciar HAL.
+- Añade la linea de Copilot a `/status` y actualiza `/help`; el identificador de usuario pasa a `HAL/1.6`.
+- Añade la vista DeepSeek (`/on ds`, alias `deepseek`) con el saldo disponible (`total_balance`) en un anillo.
+- Consulta `https://api.deepseek.com/user/balance` al iniciar y cada 30 minutos con la clave de `%APPDATA%\HAL\deepseek.json`.
+- Colorea el anillo con el tono del modo, amarillo cerca de `alert_below` y rojo por debajo o sin saldo; muestra `SIN API KEY`, `API KEY INVALIDA`, `SIN CONEXION` o `NO DISP.` cuando falla.
+- Añade la linea de DeepSeek a `/status` y actualiza `/help`; la clave se puede renovar sin reiniciar.
+
 ## 1.5.0
 
 - Unifica color y modo: cada modo define un color fijo (normal verde, developer cian, focus azul, relax violeta, happy amarillo).

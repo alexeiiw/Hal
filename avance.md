@@ -1,5 +1,17 @@
 # Avance de HAL
 
+## 2026-10-21
+
+- [x] Validado el endpoint interno `GET https://api.github.com/copilot_internal/user` con un token clasico de solo `read:user`; devuelve `entitlement`, `credits_used`, `has_quota` y `quota_reset_date_utc`.
+- [x] Movido el token a `%APPDATA%\HAL\copilot.json` con `token` y `refresh_minutes` (30 por defecto), fuera del repositorio.
+- [x] Añadido el widget Copilot con anillo, lectura `usados / total`, color del modo y estados azul (70 %), rojo (90 % o agotado), `TOKEN VENCIDO`, `SIN TOKEN`, `NO DISP.` y `SIN CUOTA`.
+- [x] Añadidos `run_copilot`, `fetch_copilot`, `/on cop`, `/off cop` y la linea de Copilot en `/status`.
+- [x] Añadida la vista DeepSeek (`/on ds`, alias `deepseek`) con `total_balance` desde `https://api.deepseek.com/user/balance` y configuracion en `%APPDATA%\HAL\deepseek.json`.
+- [x] Añadidos `run_deepseek`, la linea de DeepSeek en `/status`, el anillo con color del modo (amarillo cerca de `alert_below`, rojo por debajo) y los estados `SIN API KEY`, `API KEY INVALIDA`, `SIN CONEXION` y `NO DISP.`.
+- [x] Actualizados README, CHANGELOG y SECURITY.md sin cambiar la version `1.6.0`.
+- [x] Actualizada la version local a `1.6.0`, el identificador de usuario a `HAL/1.6`, README, changelog y politica de seguridad.
+- [x] Compilado el ejecutable y los instaladores `1.6.0`, y ejecutado HAL (sin publicar).
+
 ## 2026-10-16
 
 - [x] Unificado color y modo: cada modo define un color fijo (normal verde, developer cian, focus azul, relax violeta, happy amarillo).
