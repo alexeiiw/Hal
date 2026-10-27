@@ -120,6 +120,13 @@ struct DeepSeekBalanceInfo {
 struct OpenCodeConfig {
     url: Option<String>,
     refresh_seconds: Option<u64>,
+    password: Option<String>,
+}
+
+#[derive(Default, Deserialize)]
+#[serde(default)]
+struct OpenCodeServiceConfig {
+    password: Option<String>,
 }
 
 #[derive(Clone, Default, Serialize)]
@@ -275,6 +282,18 @@ fn load_opencode_config() -> OpenCodeConfig {
         .ok()
         .and_then(|content| serde_json::from_str(&content).ok())
         .unwrap_or_default()
+}
+
+fn opencode_service_password() -> Option<String> {
+    let home = env::var_os("USERPROFILE")
+        .or_else(|| env::var_os("HOME"))
+        .map(PathBuf::from)?;
+    let path = home.join(".config").join("opencode").join("service.json");
+    fs::read_to_string(path)
+        .ok()
+        .and_then(|content| serde_json::from_str::<OpenCodeServiceConfig>(&content).ok())
+        .and_then(|config| config.password)
+        .filter(|password| !password.trim().is_empty())
 }
 
 fn reminders_path() -> PathBuf {
@@ -857,7 +876,7 @@ async fn run_telegram(
     }
 
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.7")
+        .user_agent("HAL/1.7.1")
         .build()
         .expect("failed to create Telegram client");
 
@@ -997,7 +1016,7 @@ async fn fetch_copilot(client: &reqwest::Client, token: &str) -> Result<CopilotS
 
 async fn run_copilot(app: tauri::AppHandle, status: Arc<Mutex<CopilotStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.7")
+        .user_agent("HAL/1.7.1")
         .build()
         .expect("failed to create Copilot client");
 
@@ -1079,7 +1098,7 @@ async fn fetch_deepseek(
 
 async fn run_deepseek(app: tauri::AppHandle, status: Arc<Mutex<DeepSeekStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.7")
+        .user_agent("HAL/1.7.1")
         .build()
         .expect("failed to create DeepSeek client");
 
@@ -1114,17 +1133,32 @@ async fn run_deepseek(app: tauri::AppHandle, status: Arc<Mutex<DeepSeekStatus>>)
     }
 }
 
+fn opencode_get(
+    client: &reqwest::Client,
+    url: String,
+    password: Option<&str>,
+) -> reqwest::RequestBuilder {
+    let request = client.get(url);
+    match password {
+        Some(password) => request.basic_auth("opencode", Some(password)),
+        None => request,
+    }
+}
+
 async fn fetch_opencode(
     client: &reqwest::Client,
     base_url: &str,
+    password: Option<&str>,
 ) -> Result<OpenCodeStatus, String> {
     let base_url = base_url.trim_end_matches('/');
-    let active = client
-        .get(format!("{base_url}/api/session/active"))
+    let active = opencode_get(client, format!("{base_url}/api/session/active"), password)
         .send()
         .await
         .map_err(|_| "SIN SERVIDOR".to_string())?;
 
+    if active.status() == reqwest::StatusCode::UNAUTHORIZED {
+        return Err("AUTORIZACION REQUERIDA".to_string());
+    }
     if !active.status().is_success() {
         return Err("NO DISP.".to_string());
     }
@@ -1144,10 +1178,13 @@ async fn fetch_opencode(
         .find(|(_, session)| session.kind == "running")
         .map(|(id, _)| id.as_str());
 
-    let pending_permissions = match client
-        .get(format!("{base_url}/api/permission/request"))
-        .send()
-        .await
+    let pending_permissions = match opencode_get(
+        client,
+        format!("{base_url}/api/permission/request"),
+        password,
+    )
+    .send()
+    .await
     {
         Ok(response) if response.status().is_success() => response
             .json::<OpenCodePermissionsResponse>()
@@ -1158,8 +1195,7 @@ async fn fetch_opencode(
     };
 
     let session = match session_id {
-        Some(id) => match client
-            .get(format!("{base_url}/api/session/{id}"))
+        Some(id) => match opencode_get(client, format!("{base_url}/api/session/{id}"), password)
             .send()
             .await
         {
@@ -1203,7 +1239,7 @@ async fn fetch_opencode(
 
 async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.7")
+        .user_agent("HAL/1.7.1")
         .timeout(Duration::from_secs(3))
         .build()
         .expect("failed to create OpenCode client");
@@ -1215,8 +1251,12 @@ async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeSt
             .as_deref()
             .filter(|url| !url.trim().is_empty())
             .unwrap_or("http://127.0.0.1:4096");
+        let password = config
+            .password
+            .filter(|password| !password.trim().is_empty())
+            .or_else(opencode_service_password);
         let seconds = config.refresh_seconds.unwrap_or(5).clamp(2, 60);
-        let snapshot = match fetch_opencode(&client, base_url).await {
+        let snapshot = match fetch_opencode(&client, base_url, password.as_deref()).await {
             Ok(snapshot) => snapshot,
             Err(error) => OpenCodeStatus {
                 ok: false,
@@ -1235,7 +1275,7 @@ async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeSt
 
 async fn run_bitcoin_alert(app: tauri::AppHandle, bitcoin_status: Arc<Mutex<BitcoinStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.7")
+        .user_agent("HAL/1.7.1")
         .build()
         .expect("failed to create Bitcoin client");
     let mut was_below_threshold = false;

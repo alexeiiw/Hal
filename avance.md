@@ -2,6 +2,11 @@
 
 ## 2026-10-27
 
+- [x] Corregida la autorizacion de la vista OpenCode para usar localmente la contraseña privada del servicio, sin guardarla en HAL.
+- [x] Actualizada la version local a `1.7.1`, documentacion y nombres de instaladores.
+
+## 2026-10-27
+
 - [x] Añadida la tarjeta OpenCode con estado, sesiones, permisos, tarea, agente/modelo y tokens, en el color del modo activo.
 - [x] Añadidos `run_opencode_status`, `/on oc`, `/off oc`, OpenCode en `/status` e `opencode.json` para la URL local y frecuencia de consulta.
 - [x] Actualizada la version local a `1.7.0`, README, changelog y politica de seguridad.

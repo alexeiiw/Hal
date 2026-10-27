@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.1
+
+- Autoriza la vista OpenCode contra el servicio local estándar mediante su contraseña privada, sin copiarla a la configuración de HAL.
+
 ## 1.7.0
 
 - Añade la vista OpenCode (`/on oc`, alias `opencode`) con una tarjeta terminal que hereda el color del modo activo.

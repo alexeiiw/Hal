@@ -1,4 +1,4 @@
-# HAL 1.7.0
+# HAL 1.7.1
 
 HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, creditos de GitHub Copilot, saldo de DeepSeek, actividad de OpenCode, tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
 
@@ -101,7 +101,7 @@ HAL lee `%APPDATA%\HAL\opencode.json`:
 }
 ```
 
-`url` apunta al servidor local de OpenCode y `refresh_seconds` es opcional (2 a 60; por defecto 5). HAL usa `GET /api/session/active`, `GET /api/session/{id}` y `GET /api/permission/request`; no lee prompts, respuestas, archivos ni ejecuta acciones en OpenCode. Si tu servidor usa otro puerto, actualiza `url`. No expongas ese servidor a Internet para HAL: esta integracion esta limitada a `127.0.0.1`.
+`url` apunta al servidor local de OpenCode y `refresh_seconds` es opcional (2 a 60; por defecto 5). HAL usa `GET /api/session/active`, `GET /api/session/{id}` y `GET /api/permission/request`; no lee prompts, respuestas, archivos ni ejecuta acciones en OpenCode. Para el servicio local estándar, HAL lee la contraseña privada de `%USERPROFILE%\.config\opencode\service.json` y la usa solo en `127.0.0.1`; no se copia en `opencode.json` ni se registra. Si ejecutas otro servidor protegido, puedes añadir temporalmente un campo `password` en `opencode.json`. Si tu servidor usa otro puerto, actualiza `url`. No expongas ese servidor a Internet para HAL.
 
 ## Mascota HAL
 
@@ -174,8 +174,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.7.0_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_1.7.0_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.7.1_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_1.7.1_x64_en-US.msi`
 
 ## Desarrollo
 
