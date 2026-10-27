@@ -1,6 +1,6 @@
-# HAL 1.6.1
+# HAL 1.7.0
 
-HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, creditos de GitHub Copilot, saldo de DeepSeek, tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
+HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, creditos de GitHub Copilot, saldo de DeepSeek, actividad de OpenCode, tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
 
 ## Comportamiento
 
@@ -8,13 +8,14 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, re
 - Permanece sobre otras ventanas, pero los clics atraviesan HAL hacia la aplicacion de debajo.
 - Se coloca abajo a la derecha del area util del monitor.
 - Se muestra como un HUD sin borde, fondo ni panel de cristal para dar prioridad a los iconos.
-- Alterna CPU global, RAM principal, red, clima, reloj analogico, Bitcoin, Copilot, DeepSeek, mascota HAL y foto cada cuatro segundos; añade tarea prioritaria si esta definida.
+- Alterna CPU global, RAM principal, red, clima, reloj analogico, Bitcoin, Copilot, DeepSeek, OpenCode, mascota HAL y foto cada cuatro segundos; añade tarea prioritaria si esta definida.
 - Muestra la RAM como un anillo de progreso con el porcentaje en el centro.
 - Detecta la ejecucion de `OpenCode.exe` y, en la vista de CPU, sustituye el ecualizador por una onda sinusoidal SVG sin cambiar la metrica global.
 - Consulta la temperatura y condicion meteorologica al iniciar y cada 30 minutos mediante Open-Meteo.
 - Solicita la ubicacion del sistema para el clima. Si se deniega el permiso o falla la consulta, muestra `CLIMA NO DISP.`.
 - Consulta los creditos de Copilot al iniciar y cada 30 minutos desde `%APPDATA%\HAL\copilot.json`.
 - Consulta el saldo de DeepSeek al iniciar y cada 30 minutos desde `%APPDATA%\HAL\deepseek.json`.
+- Consulta el servidor local de OpenCode cada 5 segundos desde `%APPDATA%\HAL\opencode.json`.
 
 | Vista | Umbral medio | Umbral alto | Colores |
 | --- | --- | --- | --- |
@@ -26,6 +27,7 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, re
 | Bitcoin | No aplica | $76,000 USD visual | Naranja, verde/rojo y alerta roja |
 | Copilot | 70% usado | 90% usado | Anillo en el color del modo, azul y rojo |
 | DeepSeek | No aplica | `alert_below` | Anillo y saldo en el color del modo, amarillo y rojo |
+| OpenCode | No aplica | No aplica | Tarjeta terminal en el color del modo |
 | Mascota HAL | No aplica | No aplica | Cabeza con visor, ojos, brillo y antena en el color del modo |
 | Tarea | No aplica | No aplica | Lente unico estilo HAL con insignia de prioridad |
 | Foto | No aplica | No aplica | Foto local a pantalla completa |
@@ -86,6 +88,21 @@ HAL lee la configuracion de `%APPDATA%\HAL\deepseek.json`:
 
 La consulta usa el endpoint oficial `GET https://api.deepseek.com/user/balance` con la cabecera `Authorization`; devuelve `is_available`, `total_balance`, `granted_balance` y `topped_up_balance` en USD o CNY. Si la clave no es valida, la vista muestra `API KEY INVALIDA`; si no hay conexion, `SIN CONEXION`. HAL relee `deepseek.json` en cada ciclo, de modo que una clave nueva no requiere reiniciar. La clave se envia solo a `api.deepseek.com` y nunca se registra en logs.
 
+## OpenCode
+
+La vista OpenCode (`/on oc`, tambien `opencode`) consulta solo el servidor local de OpenCode y muestra una tarjeta terminal con el color del modo activo. Alterna cada vez que la vista entra en el ciclo entre el estado (`TRABAJANDO`, `EN ESPERA` o `PERMISO`), las sesiones activas, permisos pendientes, el titulo de la tarea, agente/modelo y tokens de la sesion activa cuando esos datos estan disponibles. Si el servidor no responde, muestra `SIN SERVIDOR`; HAL sigue funcionando sin OpenCode.
+
+HAL lee `%APPDATA%\HAL\opencode.json`:
+
+```json
+{
+  "url": "http://127.0.0.1:4096",
+  "refresh_seconds": 5
+}
+```
+
+`url` apunta al servidor local de OpenCode y `refresh_seconds` es opcional (2 a 60; por defecto 5). HAL usa `GET /api/session/active`, `GET /api/session/{id}` y `GET /api/permission/request`; no lee prompts, respuestas, archivos ni ejecuta acciones en OpenCode. Si tu servidor usa otro puerto, actualiza `url`. No expongas ese servidor a Internet para HAL: esta integracion esta limitada a `127.0.0.1`.
+
 ## Mascota HAL
 
 La vista de mascota muestra una cabeza SVG con casco redondeado, visor, dos ojos luminosos con brillo y una antena; su lectura es `HAL EN LINEA`. Los modos añaden capucha para developer, lentes para focus, audifonos con notas para relax y, en happy, ojos cerrados, sonrisa y rubor. Todos los trazos usan el color del modo, de modo que la cara es estable y no cambia con la carga de CPU. La vista de tarea, en cambio, usa un lente unico estilo HAL con la insignia de prioridad.
@@ -117,7 +134,7 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/mode developer` | Capucha y acentos cian |
 | `/mode focus` | Lentes y acentos azules |
 | `/mode relax` | Auriculares y acentos violetas |
-| `/on nombre` | Activa `cpu`, `ram`, `red`, `clima`, `reloj`, `btc`, `cara`, `tarea`, `foto`, `cop` o `ds` |
+| `/on nombre` | Activa `cpu`, `ram`, `red`, `clima`, `reloj`, `btc`, `cara`, `tarea`, `foto`, `cop`, `ds` u `oc` |
 | `/off nombre` | Desactiva una vista del ciclo |
 | `/off hal` | Cierra HAL de forma remota |
 | `/btc alert 80000` | Fija el aviso remoto de BTC cuando el precio sea igual o menor a $80,000 USD |
@@ -131,9 +148,9 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/aviso 08:00` | Programa un aviso para la proxima hora local 08:00 |
 | `/aviso list` | Lista los avisos activos |
 | `/aviso cancel` | Cancela todos los avisos |
-| `/status` | Informa CPU, RAM, BTC y su alerta remota, Copilot, DeepSeek, modo, tarea y vistas activas |
+| `/status` | Informa CPU, RAM, BTC y su alerta remota, Copilot, DeepSeek, OpenCode, modo, tarea y vistas activas |
 
-Los modos, las vistas activas, la frase, la tarea, los avisos y el umbral remoto de BTC se guardan localmente en HAL y se conservan al reiniciar. Al cumplirse un aviso, HAL muestra el ojo rojo de HAL con pulso y parpadeo durante 30 segundos y Telegram recibe una confirmacion. `/status` informa CPU, RAM, BTC y su alerta, Copilot, DeepSeek, modo, tarea y vistas activas. Telegram solo se consulta para recibir comandos; si no hay token o red, HAL sigue funcionando normalmente. La vista Copilot se controla igual con `/on cop` y `/off cop`, y su token se guarda aparte en `copilot.json`; la vista DeepSeek usa `/on ds` y su clave se guarda en `deepseek.json`.
+Los modos, las vistas activas, la frase, la tarea, los avisos y el umbral remoto de BTC se guardan localmente en HAL y se conservan al reiniciar. Al cumplirse un aviso, HAL muestra el ojo rojo de HAL con pulso y parpadeo durante 30 segundos y Telegram recibe una confirmacion. `/status` informa CPU, RAM, BTC y su alerta, Copilot, DeepSeek, OpenCode, modo, tarea y vistas activas. Telegram solo se consulta para recibir comandos; si no hay token o red, HAL sigue funcionando normalmente. La vista Copilot se controla igual con `/on cop` y `/off cop`, su token se guarda aparte en `copilot.json`; DeepSeek usa `/on ds` y `deepseek.json`; OpenCode usa `/on oc` y `opencode.json`.
 
 ## Modo OpenCode
 
@@ -157,8 +174,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.6.1_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_1.6.1_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.7.0_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_1.7.0_x64_en-US.msi`
 
 ## Desarrollo
 

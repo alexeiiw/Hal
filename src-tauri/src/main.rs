@@ -115,6 +115,70 @@ struct DeepSeekBalanceInfo {
     topped_up_balance: Option<String>,
 }
 
+#[derive(Default, Deserialize)]
+#[serde(default)]
+struct OpenCodeConfig {
+    url: Option<String>,
+    refresh_seconds: Option<u64>,
+}
+
+#[derive(Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct OpenCodeStatus {
+    state: String,
+    title: Option<String>,
+    agent: Option<String>,
+    model: Option<String>,
+    tokens: u64,
+    active_sessions: usize,
+    pending_permissions: usize,
+    fetched_at: i64,
+    ok: bool,
+    error: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct OpenCodeActiveResponse {
+    data: std::collections::HashMap<String, OpenCodeActiveSession>,
+}
+
+#[derive(Deserialize)]
+struct OpenCodeActiveSession {
+    #[serde(rename = "type")]
+    kind: String,
+}
+
+#[derive(Deserialize)]
+struct OpenCodeSessionResponse {
+    data: OpenCodeSession,
+}
+
+#[derive(Deserialize)]
+struct OpenCodeSession {
+    title: Option<String>,
+    agent: Option<String>,
+    model: Option<OpenCodeModel>,
+    tokens: Option<OpenCodeTokens>,
+}
+
+#[derive(Deserialize)]
+struct OpenCodeModel {
+    id: Option<String>,
+}
+
+#[derive(Default, Deserialize)]
+#[serde(default)]
+struct OpenCodeTokens {
+    input: u64,
+    output: u64,
+    reasoning: u64,
+}
+
+#[derive(Deserialize)]
+struct OpenCodePermissionsResponse {
+    data: Vec<serde_json::Value>,
+}
+
 #[derive(Clone, Serialize)]
 struct NetworkSample {
     down: f64,
@@ -197,6 +261,17 @@ fn deepseek_config_path() -> PathBuf {
 
 fn load_deepseek_config() -> DeepSeekConfig {
     fs::read_to_string(deepseek_config_path())
+        .ok()
+        .and_then(|content| serde_json::from_str(&content).ok())
+        .unwrap_or_default()
+}
+
+fn opencode_config_path() -> PathBuf {
+    telegram_config_path().with_file_name("opencode.json")
+}
+
+fn load_opencode_config() -> OpenCodeConfig {
+    fs::read_to_string(opencode_config_path())
         .ok()
         .and_then(|content| serde_json::from_str(&content).ok())
         .unwrap_or_default()
@@ -362,7 +437,7 @@ fn parse_bitcoin_alert_price(value: &str) -> Result<f64, String> {
 
 fn inventory_status(config: &TelegramConfig) -> String {
     let views = [
-        "cpu", "ram", "red", "clima", "reloj", "btc", "cara", "tarea", "foto", "cop", "ds",
+        "cpu", "ram", "red", "clima", "reloj", "btc", "cara", "tarea", "foto", "cop", "ds", "oc",
     ];
     let active = views
         .iter()
@@ -378,6 +453,7 @@ fn inventory_status(config: &TelegramConfig) -> String {
                 "foto" => "photo",
                 "cop" => "copilot",
                 "ds" => "deepseek",
+                "oc" => "opencode",
                 view => view,
             };
             !config
@@ -451,6 +527,7 @@ async fn handle_telegram_command(
     bitcoin_status: &Arc<Mutex<BitcoinStatus>>,
     copilot_status: &Arc<Mutex<CopilotStatus>>,
     deepseek_status: &Arc<Mutex<DeepSeekStatus>>,
+    opencode_status: &Arc<Mutex<OpenCodeStatus>>,
     message: TelegramMessage,
 ) {
     let chat_id = message.chat.id;
@@ -502,7 +579,7 @@ async fn handle_telegram_command(
     }
 
     let response = if text == "/help" || text == "/start" {
-        "Comandos:\n/help\n/pair\n/status\n/inventory\n/mode normal|developer|focus|relax|happy\n/on nombre (cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop, ds)\n/off nombre\n/off hal\n/btc alert precio | /btc alert | /btc off\n/phrase texto | /phrase clear\n/task texto | /task clear\n/aviso 10 o 08:00\n/aviso list | /aviso cancel"
+        "Comandos:\n/help\n/pair\n/status\n/inventory\n/mode normal|developer|focus|relax|happy\n/on nombre (cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop, ds, oc)\n/off nombre\n/off hal\n/btc alert precio | /btc alert | /btc off\n/phrase texto | /phrase clear\n/task texto | /task clear\n/aviso 10 o 08:00\n/aviso list | /aviso cancel"
             .to_string()
     } else if text == "/inventory" {
         format!(
@@ -564,6 +641,29 @@ async fn handle_telegram_command(
                     .unwrap_or_else(|| "no disponible".to_string())
             )
         };
+        let opencode = opencode_status
+            .lock()
+            .map(|status| status.clone())
+            .unwrap_or_default();
+        let opencode_line = if opencode.ok {
+            format!(
+                "OpenCode: {} | {} sesion(es){}",
+                opencode.state,
+                opencode.active_sessions,
+                if opencode.pending_permissions > 0 {
+                    format!(" | {} permiso(s)", opencode.pending_permissions)
+                } else {
+                    String::new()
+                }
+            )
+        } else {
+            format!(
+                "OpenCode: {}",
+                opencode
+                    .error
+                    .unwrap_or_else(|| "no disponible".to_string())
+            )
+        };
         let bitcoin_alert = if bitcoin_alert_below(config) > 0.0 {
             format!("Alerta <= ${:.0}", bitcoin_alert_below(config))
         } else {
@@ -571,13 +671,14 @@ async fn handle_telegram_command(
         };
         let task = config.task.as_deref().unwrap_or("sin tarea");
         format!(
-            "CPU {:.1}% | RAM {:.1}%\n{} | {}\n{}\n{}\nModo: {}\nTarea: {}\n{}",
+            "CPU {:.1}% | RAM {:.1}%\n{} | {}\n{}\n{}\n{}\nModo: {}\nTarea: {}\n{}",
             status.cpu,
             status.memory,
             bitcoin,
             bitcoin_alert,
             copilot_line,
             deepseek_line,
+            opencode_line,
             if config.mode.is_empty() {
                 "normal"
             } else {
@@ -702,12 +803,13 @@ fn set_view(
         "net" | "banda" => "red",
         "cop" | "copilot" => "copilot",
         "ds" | "deepseek" => "deepseek",
+        "oc" | "opencode" => "opencode",
         view => view,
     };
 
     match view {
         "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo" | "red"
-        | "copilot" | "deepseek" => {
+        | "copilot" | "deepseek" | "opencode" => {
             if enabled {
                 config.disabled_views.retain(|disabled| disabled != view);
             } else if !config
@@ -730,8 +832,10 @@ fn set_view(
                 if enabled { "activada" } else { "desactivada" }
             )
         }
-        _ => "Vista inválida. Usa cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop o ds."
-            .to_string(),
+        _ => {
+            "Vista inválida. Usa cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop, ds u oc."
+                .to_string()
+        }
     }
 }
 
@@ -741,6 +845,7 @@ async fn run_telegram(
     bitcoin_status: Arc<Mutex<BitcoinStatus>>,
     copilot_status: Arc<Mutex<CopilotStatus>>,
     deepseek_status: Arc<Mutex<DeepSeekStatus>>,
+    opencode_status: Arc<Mutex<OpenCodeStatus>>,
 ) {
     let path = telegram_config_path();
     let Some(mut config) = load_telegram_config(&path) else {
@@ -752,7 +857,7 @@ async fn run_telegram(
     }
 
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.6.1")
+        .user_agent("HAL/1.7")
         .build()
         .expect("failed to create Telegram client");
 
@@ -799,6 +904,7 @@ async fn run_telegram(
                     &bitcoin_status,
                     &copilot_status,
                     &deepseek_status,
+                    &opencode_status,
                     message,
                 )
                 .await;
@@ -891,7 +997,7 @@ async fn fetch_copilot(client: &reqwest::Client, token: &str) -> Result<CopilotS
 
 async fn run_copilot(app: tauri::AppHandle, status: Arc<Mutex<CopilotStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.6.1")
+        .user_agent("HAL/1.7")
         .build()
         .expect("failed to create Copilot client");
 
@@ -973,7 +1079,7 @@ async fn fetch_deepseek(
 
 async fn run_deepseek(app: tauri::AppHandle, status: Arc<Mutex<DeepSeekStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.6.1")
+        .user_agent("HAL/1.7")
         .build()
         .expect("failed to create DeepSeek client");
 
@@ -1008,9 +1114,128 @@ async fn run_deepseek(app: tauri::AppHandle, status: Arc<Mutex<DeepSeekStatus>>)
     }
 }
 
+async fn fetch_opencode(
+    client: &reqwest::Client,
+    base_url: &str,
+) -> Result<OpenCodeStatus, String> {
+    let base_url = base_url.trim_end_matches('/');
+    let active = client
+        .get(format!("{base_url}/api/session/active"))
+        .send()
+        .await
+        .map_err(|_| "SIN SERVIDOR".to_string())?;
+
+    if !active.status().is_success() {
+        return Err("NO DISP.".to_string());
+    }
+
+    let active = active
+        .json::<OpenCodeActiveResponse>()
+        .await
+        .map_err(|_| "RESPUESTA INVALIDA".to_string())?;
+    let active_sessions = active
+        .data
+        .iter()
+        .filter(|(_, session)| session.kind == "running")
+        .count();
+    let session_id = active
+        .data
+        .iter()
+        .find(|(_, session)| session.kind == "running")
+        .map(|(id, _)| id.as_str());
+
+    let pending_permissions = match client
+        .get(format!("{base_url}/api/permission/request"))
+        .send()
+        .await
+    {
+        Ok(response) if response.status().is_success() => response
+            .json::<OpenCodePermissionsResponse>()
+            .await
+            .map(|response| response.data.len())
+            .unwrap_or(0),
+        _ => 0,
+    };
+
+    let session = match session_id {
+        Some(id) => match client
+            .get(format!("{base_url}/api/session/{id}"))
+            .send()
+            .await
+        {
+            Ok(response) if response.status().is_success() => response
+                .json::<OpenCodeSessionResponse>()
+                .await
+                .ok()
+                .map(|response| response.data),
+            _ => None,
+        },
+        None => None,
+    };
+    let tokens = session
+        .as_ref()
+        .and_then(|session| session.tokens.as_ref())
+        .map(|tokens| tokens.input + tokens.output + tokens.reasoning)
+        .unwrap_or(0);
+
+    Ok(OpenCodeStatus {
+        state: if pending_permissions > 0 {
+            "PERMISO".to_string()
+        } else if active_sessions > 0 {
+            "TRABAJANDO".to_string()
+        } else {
+            "EN ESPERA".to_string()
+        },
+        title: session.as_ref().and_then(|session| session.title.clone()),
+        agent: session.as_ref().and_then(|session| session.agent.clone()),
+        model: session
+            .as_ref()
+            .and_then(|session| session.model.as_ref())
+            .and_then(|model| model.id.clone()),
+        tokens,
+        active_sessions,
+        pending_permissions,
+        fetched_at: Utc::now().timestamp(),
+        ok: true,
+        error: None,
+    })
+}
+
+async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeStatus>>) {
+    let client = reqwest::Client::builder()
+        .user_agent("HAL/1.7")
+        .timeout(Duration::from_secs(3))
+        .build()
+        .expect("failed to create OpenCode client");
+
+    loop {
+        let config = load_opencode_config();
+        let base_url = config
+            .url
+            .as_deref()
+            .filter(|url| !url.trim().is_empty())
+            .unwrap_or("http://127.0.0.1:4096");
+        let seconds = config.refresh_seconds.unwrap_or(5).clamp(2, 60);
+        let snapshot = match fetch_opencode(&client, base_url).await {
+            Ok(snapshot) => snapshot,
+            Err(error) => OpenCodeStatus {
+                ok: false,
+                error: Some(error),
+                ..Default::default()
+            },
+        };
+
+        if let Ok(mut guard) = status.lock() {
+            *guard = snapshot.clone();
+        }
+        let _ = app.emit("evento-opencode-estado", snapshot);
+        tokio::time::sleep(Duration::from_secs(seconds)).await;
+    }
+}
+
 async fn run_bitcoin_alert(app: tauri::AppHandle, bitcoin_status: Arc<Mutex<BitcoinStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.6.1")
+        .user_agent("HAL/1.7")
         .build()
         .expect("failed to create Bitcoin client");
     let mut was_below_threshold = false;
@@ -1071,6 +1296,7 @@ fn main() {
             let bitcoin_status = Arc::new(Mutex::new(BitcoinStatus::default()));
             let copilot_status = Arc::new(Mutex::new(CopilotStatus::default()));
             let deepseek_status = Arc::new(Mutex::new(DeepSeekStatus::default()));
+            let opencode_status = Arc::new(Mutex::new(OpenCodeStatus::default()));
             let monitor_status = system_status.clone();
             let app_handle = app.handle().clone();
             thread::spawn(move || {
@@ -1152,11 +1378,13 @@ fn main() {
                 bitcoin_status.clone(),
                 copilot_status.clone(),
                 deepseek_status.clone(),
+                opencode_status.clone(),
             ));
             run_reminder_watcher(app.handle().clone());
             tauri::async_runtime::spawn(run_bitcoin_alert(app.handle().clone(), bitcoin_status));
             tauri::async_runtime::spawn(run_copilot(app.handle().clone(), copilot_status));
             tauri::async_runtime::spawn(run_deepseek(app.handle().clone(), deepseek_status));
+            tauri::async_runtime::spawn(run_opencode_status(app.handle().clone(), opencode_status));
 
             Ok(())
         })

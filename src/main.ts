@@ -23,7 +23,9 @@ const copUsed = document.querySelector<HTMLElement>("#cop-used");
 const copTotal = document.querySelector<HTMLElement>("#cop-total");
 const dsArc = document.querySelector<SVGCircleElement>("#ds-arc");
 const dsBalance = document.querySelector<HTMLElement>("#ds-balance");
-type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo" | "red" | "copilot" | "deepseek";
+const ocState = document.querySelector<HTMLElement>("#oc-state");
+const ocCount = document.querySelector<HTMLElement>("#oc-count");
+type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo" | "red" | "copilot" | "deepseek" | "opencode";
 type WeatherKind = "clear" | "cloud" | "fog" | "rain" | "snow" | "storm";
 type BitcoinQuote = { price: number; previousPrice: number | null; updatedAt: number };
 type NetworkSample = { down: number; up: number };
@@ -48,6 +50,18 @@ type DeepSeekStatus = {
   ok: boolean;
   error: string | null;
 };
+type OpenCodeStatus = {
+  state: string;
+  title: string | null;
+  agent: string | null;
+  model: string | null;
+  tokens: number;
+  activeSessions: number;
+  pendingPermissions: number;
+  fetchedAt: number;
+  ok: boolean;
+  error: string | null;
+};
 type HalMode = "normal" | "developer" | "focus" | "relax" | "happy";
 type ViewChange = { view: MetricView; enabled: boolean };
 
@@ -57,9 +71,9 @@ const bitcoinCacheMaxAgeMs = 24 * 60 * 60 * 1000;
 const bitcoinBuyThreshold = 76_000;
 const halSettingsKey = "hal-settings";
 const halClockResetKey = "hal-clock-once";
-const allViews: MetricView[] = ["cpu", "memory", "red", "weather", "clock", "bitcoin", "face", "task", "photo", "copilot", "deepseek"];
+const allViews: MetricView[] = ["cpu", "memory", "red", "weather", "clock", "bitcoin", "face", "task", "photo", "copilot", "deepseek", "opencode"];
 
-if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !photoImg || !netLine || !netUpLine || !netArea || !netDownEl || !netUpEl || !copArc || !copUsed || !copTotal || !dsArc || !dsBalance || bars.length !== 5) {
+if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !photoImg || !netLine || !netUpLine || !netArea || !netDownEl || !netUpEl || !copArc || !copUsed || !copTotal || !dsArc || !dsBalance || !ocState || !ocCount || bars.length !== 5) {
   throw new Error("La interfaz HAL no se pudo inicializar.");
 }
 
@@ -82,6 +96,8 @@ let netDownRate = 0;
 let netUpRate = 0;
 let copilot: CopilotStatus | null = null;
 let deepseek: DeepSeekStatus | null = null;
+let openCode: OpenCodeStatus | null = null;
+let openCodeDetail = 0;
 let enabledViews: Record<MetricView, boolean> = {
   cpu: true,
   memory: true,
@@ -94,6 +110,7 @@ let enabledViews: Record<MetricView, boolean> = {
   photo: true,
   copilot: true,
   deepseek: true,
+  opencode: true,
 };
 
 function saveHalSettings(): void {
@@ -243,6 +260,37 @@ function updateDeepSeek(): void {
   const ratio = Math.min(1, balance / (alert * 2));
   dsArc!.style.strokeDashoffset = `${dsCircumference * (1 - ratio)}`;
   dsBalance!.textContent = ok ? formatMoney(balance, deepseek!.currency) : "--";
+}
+
+function formatTokens(tokens: number): string {
+  if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(1)}M`;
+  if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(1)}K`;
+  return String(Math.max(0, Math.round(tokens)));
+}
+
+function updateOpenCode(): void {
+  if (!openCode || !openCode.ok) {
+    ocState!.textContent = "SIN SERVIDOR";
+    ocCount!.textContent = "LOCAL";
+    return;
+  }
+
+  ocState!.textContent = openCode.pendingPermissions > 0 ? "PERMISO" : openCode.state;
+  ocCount!.textContent = openCode.activeSessions > 0 ? `${openCode.activeSessions} SESION` : "LOCAL";
+}
+
+function openCodeLines(): string[] {
+  if (!openCode || !openCode.ok) return [openCode?.error ?? "OPENCODE NO DISP."];
+
+  const lines = [
+    `OPENCODE ${openCode.state}`,
+    openCode.pendingPermissions > 0 ? `${openCode.pendingPermissions} PERMISO PENDIENTE` : "SIN PERMISOS PENDIENTES",
+    openCode.activeSessions > 0 ? `${openCode.activeSessions} SESION ACTIVA` : "SIN SESION ACTIVA",
+  ];
+  if (openCode.title) lines.push(openCode.title);
+  if (openCode.agent || openCode.model) lines.push([openCode.agent, openCode.model].filter(Boolean).join(" · "));
+  if (openCode.tokens > 0) lines.push(`${formatTokens(openCode.tokens)} TOKENS`);
+  return lines;
 }
 
 const netHistory: NetworkSample[] = [];
@@ -429,6 +477,12 @@ function currentMetric(): {
     };
   }
 
+  if (metricView === "opencode") {
+    const lines = openCodeLines();
+    const display = lines[openCodeDetail % lines.length];
+    return { display, value: 0, busyAt: 101, criticalAt: 102 };
+  }
+
   return weather
     ? {
         display: `${weather.temperature.toFixed(0)} C ${weatherLabel(weather.code)}`,
@@ -453,7 +507,7 @@ function animateBars(): void {
   const globalTempo = overloaded ? 110 : busy ? 220 : 460;
   const waveTempo = Math.max(60, 440 / (1 + opencodeCpu * 0.15));
   const showOpenCodeWave = metricView === "cpu" && opencodeActive;
-  const staticView = notice !== null || metricView === "clock" || metricView === "bitcoin" || metricView === "face" || metricView === "task" || metricView === "memory" || metricView === "photo" || metricView === "red" || metricView === "copilot" || metricView === "deepseek" || (metricView === "weather" && weather !== null);
+  const staticView = notice !== null || metricView === "clock" || metricView === "bitcoin" || metricView === "face" || metricView === "task" || metricView === "memory" || metricView === "photo" || metricView === "red" || metricView === "copilot" || metricView === "deepseek" || metricView === "opencode" || (metricView === "weather" && weather !== null);
   const tempo = staticView ? 1000 : showOpenCodeWave ? waveTempo : globalTempo;
 
   root!.classList.toggle("overloaded", overloaded);
@@ -474,6 +528,7 @@ function animateBars(): void {
   root!.classList.toggle("ds-error", metricView === "deepseek" && (!deepseek || !deepseek.ok));
   root!.classList.toggle("ds-low", metricView === "deepseek" && !!deepseek && deepseek.ok && deepseek.total > deepseek.alertBelow && deepseek.total <= deepseek.alertBelow * 2);
   root!.classList.toggle("ds-empty", metricView === "deepseek" && !!deepseek && deepseek.ok && (!deepseek.available || deepseek.total <= deepseek.alertBelow));
+  root!.classList.toggle("opencode-view", metricView === "opencode");
   root!.classList.toggle("notice-active", notice !== null);
   const quote = bitcoinQuote();
   root!.classList.toggle("btc-alert", metricView === "bitcoin" && !!quote && quote.price <= bitcoinBuyThreshold);
@@ -482,6 +537,7 @@ function animateBars(): void {
   updateGauge();
   updateCopilot();
   updateDeepSeek();
+  updateOpenCode();
   root!.style.setProperty("--tempo", `${tempo}ms`);
   metricOutput!.value = metric.display;
   metricOutput!.textContent = metricOutput!.value;
@@ -541,6 +597,11 @@ void listen<CopilotStatus>("evento-copilot", (event) => {
 
 void listen<DeepSeekStatus>("evento-deepseek", (event) => {
   deepseek = event.payload;
+});
+
+void listen<OpenCodeStatus>("evento-opencode-estado", (event) => {
+  openCode = event.payload;
+  openCodeDetail = 0;
 });
 
 void listen<HalMode>("evento-modo", (event) => {
@@ -635,6 +696,7 @@ async function refreshBitcoin(): Promise<void> {
 
 window.setInterval(() => {
   const views = activeViews();
+  if (metricView === "opencode") openCodeDetail += 1;
   metricView = views[(views.indexOf(metricView) + 1) % views.length];
 }, 4000);
 

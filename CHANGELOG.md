@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.0
+
+- Añade la vista OpenCode (`/on oc`, alias `opencode`) con una tarjeta terminal que hereda el color del modo activo.
+- Consulta el servidor local de OpenCode para mostrar estado, sesiones activas, permisos pendientes, titulo, agente, modelo y tokens cuando estan disponibles.
+- Añade OpenCode a `/status`, `/inventory` y `/help`, con configuracion opcional en `%APPDATA%\HAL\opencode.json`.
+
 ## 1.6.1
 
 - Añade `/btc alert precio`, `/btc alert` y `/btc off` para configurar, consultar o desactivar desde Telegram el umbral de alerta de Bitcoin.
