@@ -23,6 +23,7 @@ struct TelegramConfig {
     mode: String,
     task: Option<String>,
     disabled_views: Vec<String>,
+    bitcoin_alert_below: Option<f64>,
 }
 
 #[derive(Clone, Default)]
@@ -35,6 +36,8 @@ struct SystemStatus {
 struct BitcoinStatus {
     price: Option<f64>,
 }
+
+const DEFAULT_BITCOIN_ALERT_BELOW: f64 = 76_000.0;
 
 #[derive(Default, Deserialize)]
 #[serde(default)]
@@ -338,6 +341,25 @@ async fn bitcoin_price(client: &reqwest::Client) -> Option<f64> {
         .usd
 }
 
+fn bitcoin_alert_below(config: &TelegramConfig) -> f64 {
+    config
+        .bitcoin_alert_below
+        .unwrap_or(DEFAULT_BITCOIN_ALERT_BELOW)
+}
+
+fn parse_bitcoin_alert_price(value: &str) -> Result<f64, String> {
+    let normalized = value.trim().replace(['$', ',', ' '], "");
+    let price = normalized
+        .parse::<f64>()
+        .map_err(|_| "Usa un precio válido, por ejemplo /btc alert 80000.".to_string())?;
+
+    if !(1_000.0..=10_000_000.0).contains(&price) {
+        return Err("El precio debe estar entre $1,000 y $10,000,000 USD.".to_string());
+    }
+
+    Ok(price)
+}
+
 fn inventory_status(config: &TelegramConfig) -> String {
     let views = [
         "cpu", "ram", "red", "clima", "reloj", "btc", "cara", "tarea", "foto", "cop", "ds",
@@ -480,7 +502,7 @@ async fn handle_telegram_command(
     }
 
     let response = if text == "/help" || text == "/start" {
-        "Comandos:\n/help\n/pair\n/status\n/inventory\n/mode normal|developer|focus|relax|happy\n/on nombre (cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop, ds)\n/off nombre\n/off hal\n/phrase texto | /phrase clear\n/task texto | /task clear\n/aviso 10 o 08:00\n/aviso list | /aviso cancel"
+        "Comandos:\n/help\n/pair\n/status\n/inventory\n/mode normal|developer|focus|relax|happy\n/on nombre (cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop, ds)\n/off nombre\n/off hal\n/btc alert precio | /btc alert | /btc off\n/phrase texto | /phrase clear\n/task texto | /task clear\n/aviso 10 o 08:00\n/aviso list | /aviso cancel"
             .to_string()
     } else if text == "/inventory" {
         format!(
@@ -492,10 +514,7 @@ async fn handle_telegram_command(
             .lock()
             .map(|status| status.clone())
             .unwrap_or_default();
-        let cached_bitcoin = bitcoin_status
-            .lock()
-            .ok()
-            .and_then(|status| status.price);
+        let cached_bitcoin = bitcoin_status.lock().ok().and_then(|status| status.price);
         let bitcoin = if let Some(price) = cached_bitcoin {
             format!("BTC ${price:.0}")
         } else if let Some(price) = bitcoin_price(client).await {
@@ -530,21 +549,33 @@ async fn handle_telegram_command(
         let deepseek_line = if deepseek.ok {
             format!(
                 "DeepSeek: {}{:.2}",
-                if deepseek.currency == "CNY" { "¥" } else { "$" },
+                if deepseek.currency == "CNY" {
+                    "¥"
+                } else {
+                    "$"
+                },
                 deepseek.total
             )
         } else {
             format!(
                 "DeepSeek: {}",
-                deepseek.error.unwrap_or_else(|| "no disponible".to_string())
+                deepseek
+                    .error
+                    .unwrap_or_else(|| "no disponible".to_string())
             )
+        };
+        let bitcoin_alert = if bitcoin_alert_below(config) > 0.0 {
+            format!("Alerta <= ${:.0}", bitcoin_alert_below(config))
+        } else {
+            "Alerta desactivada".to_string()
         };
         let task = config.task.as_deref().unwrap_or("sin tarea");
         format!(
-            "CPU {:.1}% | RAM {:.1}%\n{}\n{}\n{}\nModo: {}\nTarea: {}\n{}",
+            "CPU {:.1}% | RAM {:.1}%\n{} | {}\n{}\n{}\nModo: {}\nTarea: {}\n{}",
             status.cpu,
             status.memory,
             bitcoin,
+            bitcoin_alert,
             copilot_line,
             deepseek_line,
             if config.mode.is_empty() {
@@ -563,6 +594,27 @@ async fn handle_telegram_command(
                 format!("Modo {} activado.", mode.trim())
             }
             _ => "Modo inválido. Usa normal, developer, focus, relax o happy.".to_string(),
+        }
+    } else if text == "/btc" {
+        "Usa /btc alert 80000 para fijar el aviso, /btc alert para consultarlo o /btc off para desactivarlo."
+            .to_string()
+    } else if text == "/btc alert" {
+        let threshold = bitcoin_alert_below(config);
+        if threshold > 0.0 {
+            format!("Alerta BTC: avísame si baja a ${threshold:.0}.")
+        } else {
+            "Alerta BTC desactivada.".to_string()
+        }
+    } else if text == "/btc off" {
+        config.bitcoin_alert_below = Some(0.0);
+        "Alerta BTC desactivada.".to_string()
+    } else if let Some(value) = text.strip_prefix("/btc alert ") {
+        match parse_bitcoin_alert_price(value) {
+            Ok(price) => {
+                config.bitcoin_alert_below = Some(price);
+                format!("Alerta BTC fijada: avísame si baja a ${price:.0}.")
+            }
+            Err(message) => message,
         }
     } else if let Some(view) = text.strip_prefix("/on ") {
         set_view(app, config, view.trim(), true)
@@ -700,7 +752,7 @@ async fn run_telegram(
     }
 
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.6")
+        .user_agent("HAL/1.6.1")
         .build()
         .expect("failed to create Telegram client");
 
@@ -709,6 +761,7 @@ async fn run_telegram(
             config.mode = saved.mode;
             config.task = saved.task;
             config.disabled_views = saved.disabled_views;
+            config.bitcoin_alert_below = saved.bitcoin_alert_below;
         }
         let offset = config.offset.unwrap_or(0).to_string();
         let response = client
@@ -838,7 +891,7 @@ async fn fetch_copilot(client: &reqwest::Client, token: &str) -> Result<CopilotS
 
 async fn run_copilot(app: tauri::AppHandle, status: Arc<Mutex<CopilotStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.6")
+        .user_agent("HAL/1.6.1")
         .build()
         .expect("failed to create Copilot client");
 
@@ -920,7 +973,7 @@ async fn fetch_deepseek(
 
 async fn run_deepseek(app: tauri::AppHandle, status: Arc<Mutex<DeepSeekStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.6")
+        .user_agent("HAL/1.6.1")
         .build()
         .expect("failed to create DeepSeek client");
 
@@ -957,7 +1010,7 @@ async fn run_deepseek(app: tauri::AppHandle, status: Arc<Mutex<DeepSeekStatus>>)
 
 async fn run_bitcoin_alert(app: tauri::AppHandle, bitcoin_status: Arc<Mutex<BitcoinStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.6")
+        .user_agent("HAL/1.6.1")
         .build()
         .expect("failed to create Bitcoin client");
     let mut was_below_threshold = false;
@@ -967,9 +1020,13 @@ async fn run_bitcoin_alert(app: tauri::AppHandle, bitcoin_status: Arc<Mutex<Bitc
             if let Ok(mut status) = bitcoin_status.lock() {
                 status.price = Some(price);
             }
-            let below_threshold = price <= 76_000.0;
+            let config = load_telegram_config(&telegram_config_path());
+            let threshold = config
+                .as_ref()
+                .map(bitcoin_alert_below)
+                .unwrap_or(DEFAULT_BITCOIN_ALERT_BELOW);
+            let below_threshold = threshold > 0.0 && price <= threshold;
             if below_threshold && !was_below_threshold {
-                let config = load_telegram_config(&telegram_config_path());
                 if let Some(config) = config {
                     if let Some(chat_id) = config.chat_id {
                         if !config.token.is_empty() {
@@ -977,7 +1034,7 @@ async fn run_bitcoin_alert(app: tauri::AppHandle, bitcoin_status: Arc<Mutex<Bitc
                                 &client,
                                 &config.token,
                                 chat_id,
-                                &format!("ALERTA BTC: ${price:.0} esta en o bajo $76000."),
+                                &format!("ALERTA BTC: ${price:.0} esta en o bajo ${threshold:.0}."),
                             )
                             .await;
                         }
@@ -988,7 +1045,7 @@ async fn run_bitcoin_alert(app: tauri::AppHandle, bitcoin_status: Arc<Mutex<Bitc
             was_below_threshold = below_threshold;
         }
 
-        tokio::time::sleep(Duration::from_secs(6 * 60 * 60)).await;
+        tokio::time::sleep(Duration::from_secs(30 * 60)).await;
     }
 }
 
@@ -1103,7 +1160,11 @@ fn main() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![sync_hal_state, list_photos, read_photo])
+        .invoke_handler(tauri::generate_handler![
+            sync_hal_state,
+            list_photos,
+            read_photo
+        ])
         .run(tauri::generate_context!())
         .expect("error while running HAL");
 }

@@ -2,6 +2,12 @@
 
 ## 2026-10-21
 
+- [x] Añadidos `/btc alert precio`, `/btc alert` y `/btc off` para gestionar el umbral remoto de Bitcoin desde Telegram.
+- [x] Guardado el umbral en `telegram.json`, actualizado `/status` y `/help`, y reducida la comprobacion remota de BTC a 30 minutos.
+- [x] Actualizada la version local a `1.6.1`, documentacion y nombres de instaladores.
+
+## 2026-10-21
+
 - [x] Validado el endpoint interno `GET https://api.github.com/copilot_internal/user` con un token clasico de solo `read:user`; devuelve `entitlement`, `credits_used`, `has_quota` y `quota_reset_date_utc`.
 - [x] Movido el token a `%APPDATA%\HAL\copilot.json` con `token` y `refresh_minutes` (30 por defecto), fuera del repositorio.
 - [x] Añadido el widget Copilot con anillo, lectura `usados / total`, color del modo y estados azul (70 %), rojo (90 % o agotado), `TOKEN VENCIDO`, `SIN TOKEN`, `NO DISP.` y `SIN CUOTA`.

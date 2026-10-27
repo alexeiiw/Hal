@@ -1,4 +1,4 @@
-# HAL 1.6.0
+# HAL 1.6.1
 
 HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, creditos de GitHub Copilot, saldo de DeepSeek, tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
 
@@ -23,7 +23,7 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, re
 | Red | No aplica | No aplica | Onda de bajada verde y subida celeste |
 | Clima | No aplica | No aplica | Semantico segun la condicion |
 | Reloj | No aplica | No aplica | Esfera tecnica verde de HAL |
-| Bitcoin | No aplica | $76,000 USD | Naranja, verde/rojo y alerta roja |
+| Bitcoin | No aplica | $76,000 USD visual | Naranja, verde/rojo y alerta roja |
 | Copilot | 70% usado | 90% usado | Anillo en el color del modo, azul y rojo |
 | DeepSeek | No aplica | `alert_below` | Anillo y saldo en el color del modo, amarillo y rojo |
 | Mascota HAL | No aplica | No aplica | Cabeza con visor, ojos, brillo y antena en el color del modo |
@@ -34,7 +34,9 @@ Cada vista conserva su metrica durante cuatro segundos. Las barras de CPU usan `
 
 ## Bitcoin
 
-HAL consulta BTC/USD en CoinGecko al iniciar y cada seis horas. Guarda localmente el ultimo precio valido durante un maximo de 24 horas para mantener la lectura si falla la red o el servicio. La flecha verde o roja compara la ultima consulta con la anterior. Cuando BTC llega a `$76,000 USD` o menos, el icono y la lectura se vuelven rojos como alerta visual de compra.
+HAL consulta BTC/USD en CoinGecko al iniciar y cada seis horas para la vista. Guarda localmente el ultimo precio valido durante un maximo de 24 horas para mantener la lectura si falla la red o el servicio. La flecha verde o roja compara la ultima consulta con la anterior. Cuando BTC llega a `$76,000 USD` o menos, el icono y la lectura se vuelven rojos como alerta visual de compra.
+
+La alerta remota de Telegram se consulta al iniciar y cada 30 minutos, y tiene un umbral independiente configurable. Por defecto avisa al llegar a `$76,000 USD` o menos. Usa `/btc alert 80000` para fijar otro precio, `/btc alert` para consultarlo y `/btc off` para desactivarla. HAL avisa una vez al cruzar hacia abajo; se rearma solamente cuando el precio vuelve a estar por encima del umbral. El precio acepta formatos como `80000`, `80,000` o `$80,000` y debe estar entre `$1,000` y `$10,000,000 USD`.
 
 ## Red
 
@@ -118,6 +120,9 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/on nombre` | Activa `cpu`, `ram`, `red`, `clima`, `reloj`, `btc`, `cara`, `tarea`, `foto`, `cop` o `ds` |
 | `/off nombre` | Desactiva una vista del ciclo |
 | `/off hal` | Cierra HAL de forma remota |
+| `/btc alert 80000` | Fija el aviso remoto de BTC cuando el precio sea igual o menor a $80,000 USD |
+| `/btc alert` | Muestra el umbral remoto de BTC actual |
+| `/btc off` | Desactiva el aviso remoto de BTC |
 | `/phrase texto` | Define una frase de hasta 30 caracteres para la mascota |
 | `/phrase clear` | Restaura `HAL EN LINEA` |
 | `/task texto` | Define la tarea prioritaria de hasta 30 caracteres |
@@ -126,9 +131,9 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/aviso 08:00` | Programa un aviso para la proxima hora local 08:00 |
 | `/aviso list` | Lista los avisos activos |
 | `/aviso cancel` | Cancela todos los avisos |
-| `/status` | Informa CPU, RAM, BTC, Copilot, DeepSeek, modo, tarea y vistas activas |
+| `/status` | Informa CPU, RAM, BTC y su alerta remota, Copilot, DeepSeek, modo, tarea y vistas activas |
 
-Los modos, las vistas activas, la frase, la tarea y los avisos se guardan localmente en HAL y se conservan al reiniciar. Al cumplirse un aviso, HAL muestra el ojo rojo de HAL con pulso y parpadeo durante 30 segundos y Telegram recibe una confirmacion. `/status` informa CPU, RAM, BTC, Copilot, DeepSeek, modo, tarea y vistas activas. Telegram solo se consulta para recibir comandos; si no hay token o red, HAL sigue funcionando normalmente. La vista Copilot se controla igual con `/on cop` y `/off cop`, y su token se guarda aparte en `copilot.json`; la vista DeepSeek usa `/on ds` y su clave se guarda en `deepseek.json`.
+Los modos, las vistas activas, la frase, la tarea, los avisos y el umbral remoto de BTC se guardan localmente en HAL y se conservan al reiniciar. Al cumplirse un aviso, HAL muestra el ojo rojo de HAL con pulso y parpadeo durante 30 segundos y Telegram recibe una confirmacion. `/status` informa CPU, RAM, BTC y su alerta, Copilot, DeepSeek, modo, tarea y vistas activas. Telegram solo se consulta para recibir comandos; si no hay token o red, HAL sigue funcionando normalmente. La vista Copilot se controla igual con `/on cop` y `/off cop`, y su token se guarda aparte en `copilot.json`; la vista DeepSeek usa `/on ds` y su clave se guarda en `deepseek.json`.
 
 ## Modo OpenCode
 
@@ -152,8 +157,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.6.0_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_1.6.0_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.6.1_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_1.6.1_x64_en-US.msi`
 
 ## Desarrollo
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.1
+
+- Añade `/btc alert precio`, `/btc alert` y `/btc off` para configurar, consultar o desactivar desde Telegram el umbral de alerta de Bitcoin.
+- Conserva el umbral remoto en `telegram.json`, valida precios de $1,000 a $10,000,000 USD y lo incorpora a `/status` y `/help`.
+- Reduce la comprobacion de la alerta remota de BTC a 30 minutos; sigue avisando una sola vez por cada cruce hacia abajo.
+
 ## 1.6.0
 
 - Añade la vista Copilot (`/on cop`, alias `copilot`) con los creditos de GitHub AI usados y el total en un anillo.
