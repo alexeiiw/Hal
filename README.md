@@ -1,4 +1,4 @@
-# HAL 1.7.1
+# HAL 1.7.2
 
 HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, creditos de GitHub Copilot, saldo de DeepSeek, actividad de OpenCode, tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
 
@@ -8,14 +8,14 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, re
 - Permanece sobre otras ventanas, pero los clics atraviesan HAL hacia la aplicacion de debajo.
 - Se coloca abajo a la derecha del area util del monitor.
 - Se muestra como un HUD sin borde, fondo ni panel de cristal para dar prioridad a los iconos.
-- Alterna CPU global, RAM principal, red, clima, reloj analogico, Bitcoin, Copilot, DeepSeek, OpenCode, mascota HAL y foto cada cuatro segundos; añade tarea prioritaria si esta definida.
+- Alterna CPU global, RAM principal, red, clima, reloj analogico, Bitcoin, Copilot, DeepSeek, OpenCode, mascota HAL y foto cada cuatro segundos (seis en OpenCode); añade tarea prioritaria si esta definida.
 - Muestra la RAM como un anillo de progreso con el porcentaje en el centro.
 - Detecta la ejecucion de `OpenCode.exe` y, en la vista de CPU, sustituye el ecualizador por una onda sinusoidal SVG sin cambiar la metrica global.
 - Consulta la temperatura y condicion meteorologica al iniciar y cada 30 minutos mediante Open-Meteo.
 - Solicita la ubicacion del sistema para el clima. Si se deniega el permiso o falla la consulta, muestra `CLIMA NO DISP.`.
 - Consulta los creditos de Copilot al iniciar y cada 30 minutos desde `%APPDATA%\HAL\copilot.json`.
 - Consulta el saldo de DeepSeek al iniciar y cada 30 minutos desde `%APPDATA%\HAL\deepseek.json`.
-- Consulta el servidor local de OpenCode cada 5 segundos desde `%APPDATA%\HAL\opencode.json`.
+- Consulta el servidor local de OpenCode cada 5 segundos desde `%APPDATA%\HAL\opencode.json` y muestra estado, herramienta, archivo, sesion, modelo, tokens, coste, permisos y rama.
 
 | Vista | Umbral medio | Umbral alto | Colores |
 | --- | --- | --- | --- |
@@ -90,7 +90,7 @@ La consulta usa el endpoint oficial `GET https://api.deepseek.com/user/balance` 
 
 ## OpenCode
 
-La vista OpenCode (`/on oc`, tambien `opencode`) consulta solo el servidor local de OpenCode y muestra una tarjeta terminal con el color del modo activo. Alterna cada vez que la vista entra en el ciclo entre el estado (`TRABAJANDO`, `EN ESPERA` o `PERMISO`), las sesiones activas, permisos pendientes, el titulo de la tarea, agente/modelo y tokens de la sesion activa cuando esos datos estan disponibles. Si el servidor no responde, muestra `SIN SERVIDOR`; HAL sigue funcionando sin OpenCode.
+La vista OpenCode (`/on oc`, tambien `opencode`) consulta solo el servidor local de OpenCode y muestra una tarjeta terminal con el color del modo activo. Mientras la vista esta en pantalla cambia sus detalles cada 1,5 segundos y permanece 6 segundos en el ciclo. Muestra el estado (`TRABAJANDO`, `EN ESPERA` o `PERMISO`), los permisos pendientes, la herramienta en uso con el archivo implicado (`EDITANDO main.ts`, `LEYENDO main.rs`, `EJECUTANDO`, `BUSCANDO`), el titulo de la sesion, el modelo, los tokens con su coste en USD, la rama y los archivos modificados. Si no hay una sesion en ejecucion, usa la ultima sesion registrada en lugar de quedarse en `EN ESPERA` sin datos. Si el servidor no responde, muestra `SIN SERVIDOR`; HAL sigue funcionando sin OpenCode.
 
 HAL lee `%APPDATA%\HAL\opencode.json`:
 
@@ -101,7 +101,9 @@ HAL lee `%APPDATA%\HAL\opencode.json`:
 }
 ```
 
-`url` apunta al servidor local de OpenCode y `refresh_seconds` es opcional (2 a 60; por defecto 5). HAL usa `GET /api/session/active`, `GET /api/session/{id}` y `GET /api/permission/request`; no lee prompts, respuestas, archivos ni ejecuta acciones en OpenCode. Para el servicio local estándar, HAL lee la contraseña privada de `%USERPROFILE%\.config\opencode\service.json` y la usa solo en `127.0.0.1`; no se copia en `opencode.json` ni se registra. Si ejecutas otro servidor protegido, puedes añadir temporalmente un campo `password` en `opencode.json`. Si tu servidor usa otro puerto, actualiza `url`. No expongas ese servidor a Internet para HAL.
+`url` apunta al servidor local de OpenCode y `refresh_seconds` es opcional (2 a 60; por defecto 5). HAL consulta `GET /api/session/active`, `GET /api/session?limit=1&order=desc`, `GET /api/session/{id}`, `GET /api/session/{id}/message?limit=1&order=desc`, `GET /api/permission/request`, `GET /api/vcs/branch`, `GET /api/vcs/status` y `GET /api/experimental/usage/limits`. Del mensaje solo extrae el nombre de la herramienta, su estado y la ruta del archivo; no lee prompts, respuestas, razonamiento ni contenido de archivos, y no ejecuta acciones en OpenCode. Para el servicio local estándar, HAL lee la contraseña privada de `%USERPROFILE%\.config\opencode\service.json` y la usa solo en `127.0.0.1`; no se copia en `opencode.json` ni se registra. Si ejecutas otro servidor protegido, puedes añadir temporalmente un campo `password` en `opencode.json`. Si tu servidor usa otro puerto, actualiza `url`. No expongas ese servidor a Internet para HAL.
+
+El API de OpenCode no informa cuanto tiempo queda en los modelos gratuitos. `GET /api/experimental/usage/limits` solo devuelve datos (`rolling`, `weekly`, `monthly` con porcentaje y fecha de renovacion) cuando hay una sesion iniciada en OpenCode Console; sin ella responde `data: null`, y los limites del nivel gratuito solo se manifiestan como errores de rate limit al generar. HAL muestra `GO <porcentaje>%` cuando ese dato existe.
 
 ## Mascota HAL
 
@@ -148,7 +150,7 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/aviso 08:00` | Programa un aviso para la proxima hora local 08:00 |
 | `/aviso list` | Lista los avisos activos |
 | `/aviso cancel` | Cancela todos los avisos |
-| `/status` | Informa CPU, RAM, BTC y su alerta remota, Copilot, DeepSeek, OpenCode, modo, tarea y vistas activas |
+| `/status` | Informa CPU, RAM, BTC y su alerta remota, Copilot, DeepSeek, OpenCode (estado, herramienta, tokens y coste), modo, tarea y vistas activas |
 
 Los modos, las vistas activas, la frase, la tarea, los avisos y el umbral remoto de BTC se guardan localmente en HAL y se conservan al reiniciar. Al cumplirse un aviso, HAL muestra el ojo rojo de HAL con pulso y parpadeo durante 30 segundos y Telegram recibe una confirmacion. `/status` informa CPU, RAM, BTC y su alerta, Copilot, DeepSeek, OpenCode, modo, tarea y vistas activas. Telegram solo se consulta para recibir comandos; si no hay token o red, HAL sigue funcionando normalmente. La vista Copilot se controla igual con `/on cop` y `/off cop`, su token se guarda aparte en `copilot.json`; DeepSeek usa `/on ds` y `deepseek.json`; OpenCode usa `/on oc` y `opencode.json`.
 
@@ -174,8 +176,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.7.1_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_1.7.1_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.7.2_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_1.7.2_x64_en-US.msi`
 
 ## Desarrollo
 
@@ -194,7 +196,7 @@ npm run tauri build
 
 ## Arquitectura
 
-- `src-tauri/src/main.rs`: mide CPU, RAM, red, procesos y OpenCode una vez por segundo; recibe comandos, mantiene avisos, envia alertas de Telegram, consulta los creditos de Copilot y el saldo de DeepSeek, y expone las fotos locales.
+- `src-tauri/src/main.rs`: mide CPU, RAM, red, procesos y OpenCode una vez por segundo; recibe comandos, mantiene avisos, envia alertas de Telegram, consulta los creditos de Copilot, el saldo de DeepSeek y el estado de OpenCode, y expone las fotos locales.
 - `src/main.ts`: alterna CPU, RAM, red, clima, reloj, Bitcoin, Copilot, DeepSeek, mascota, tarea y foto; conserva modos, vistas, frase y tarea localmente.
 - `src/style.css`: define el HUD, iconos, anillo de RAM, widget de red, anillos de Copilot y DeepSeek, marco de fotos, reloj analogico SVG, mascota por modo, tarea, avisos y estado visual de Bitcoin.
 

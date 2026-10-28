@@ -133,12 +133,22 @@ struct OpenCodeServiceConfig {
 #[serde(rename_all = "camelCase")]
 struct OpenCodeStatus {
     state: String,
+    session_id: Option<String>,
     title: Option<String>,
     agent: Option<String>,
     model: Option<String>,
+    provider: Option<String>,
     tokens: u64,
+    cache_tokens: u64,
+    cost: f64,
     active_sessions: usize,
     pending_permissions: usize,
+    tool: Option<String>,
+    file: Option<String>,
+    branch: Option<String>,
+    changed_files: usize,
+    go_percent: Option<f64>,
+    go_resets_at: Option<i64>,
     fetched_at: i64,
     ok: bool,
     error: Option<String>,
@@ -161,16 +171,26 @@ struct OpenCodeSessionResponse {
 }
 
 #[derive(Deserialize)]
+struct OpenCodeSessionsResponse {
+    data: Vec<OpenCodeSession>,
+}
+
+#[derive(Deserialize)]
 struct OpenCodeSession {
+    id: Option<String>,
     title: Option<String>,
     agent: Option<String>,
     model: Option<OpenCodeModel>,
     tokens: Option<OpenCodeTokens>,
+    cost: Option<f64>,
+    location: Option<OpenCodeLocation>,
 }
 
 #[derive(Deserialize)]
 struct OpenCodeModel {
     id: Option<String>,
+    #[serde(rename = "providerID")]
+    provider_id: Option<String>,
 }
 
 #[derive(Default, Deserialize)]
@@ -179,11 +199,80 @@ struct OpenCodeTokens {
     input: u64,
     output: u64,
     reasoning: u64,
+    cache: OpenCodeCacheTokens,
+}
+
+#[derive(Default, Deserialize)]
+#[serde(default)]
+struct OpenCodeCacheTokens {
+    read: u64,
+}
+
+#[derive(Deserialize)]
+struct OpenCodeLocation {
+    directory: Option<String>,
 }
 
 #[derive(Deserialize)]
 struct OpenCodePermissionsResponse {
     data: Vec<serde_json::Value>,
+}
+
+#[derive(Deserialize)]
+struct OpenCodeMessagesResponse {
+    data: Vec<OpenCodeMessage>,
+}
+
+#[derive(Deserialize)]
+struct OpenCodeMessage {
+    #[serde(default)]
+    content: Vec<OpenCodePart>,
+}
+
+#[derive(Deserialize)]
+struct OpenCodePart {
+    #[serde(rename = "type")]
+    kind: String,
+    name: Option<String>,
+    state: Option<OpenCodeToolState>,
+}
+
+#[derive(Deserialize)]
+struct OpenCodeToolState {
+    status: Option<String>,
+    input: Option<serde_json::Value>,
+}
+
+#[derive(Deserialize)]
+struct OpenCodeBranchResponse {
+    data: Vec<String>,
+}
+
+#[derive(Deserialize)]
+struct OpenCodeVcsResponse {
+    data: Vec<serde_json::Value>,
+}
+
+#[derive(Deserialize)]
+struct OpenCodeUsageResponse {
+    data: Option<OpenCodeUsage>,
+}
+
+#[derive(Deserialize)]
+struct OpenCodeUsage {
+    go: Option<OpenCodeGo>,
+}
+
+#[derive(Deserialize)]
+struct OpenCodeGo {
+    rolling: Option<OpenCodeMeter>,
+}
+
+#[derive(Deserialize)]
+struct OpenCodeMeter {
+    percent: Option<f64>,
+    #[serde(rename = "resetsAt")]
+    resets_at: Option<i64>,
 }
 
 #[derive(Clone, Serialize)]
@@ -665,16 +754,26 @@ async fn handle_telegram_command(
             .map(|status| status.clone())
             .unwrap_or_default();
         let opencode_line = if opencode.ok {
-            format!(
-                "OpenCode: {} | {} sesion(es){}",
-                opencode.state,
-                opencode.active_sessions,
-                if opencode.pending_permissions > 0 {
-                    format!(" | {} permiso(s)", opencode.pending_permissions)
-                } else {
-                    String::new()
-                }
-            )
+            let mut line = format!(
+                "OpenCode: {} | {} sesion(es)",
+                opencode.state, opencode.active_sessions
+            );
+            if let Some(tool) = &opencode.tool {
+                line.push_str(&format!(" | {}", tool));
+            }
+            if opencode.tokens > 0 {
+                line.push_str(&format!(" | {} tok", opencode.tokens));
+            }
+            if opencode.cost > 0.0 {
+                line.push_str(&format!(" | ${:.2}", opencode.cost));
+            }
+            if opencode.pending_permissions > 0 {
+                line.push_str(&format!(" | {} permiso(s)", opencode.pending_permissions));
+            }
+            if let Some(percent) = opencode.go_percent {
+                line.push_str(&format!(" | Go {:.0}%", percent));
+            }
+            line
         } else {
             format!(
                 "OpenCode: {}",
@@ -876,7 +975,7 @@ async fn run_telegram(
     }
 
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.7.1")
+        .user_agent("HAL/1.7.2")
         .build()
         .expect("failed to create Telegram client");
 
@@ -1016,7 +1115,7 @@ async fn fetch_copilot(client: &reqwest::Client, token: &str) -> Result<CopilotS
 
 async fn run_copilot(app: tauri::AppHandle, status: Arc<Mutex<CopilotStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.7.1")
+        .user_agent("HAL/1.7.2")
         .build()
         .expect("failed to create Copilot client");
 
@@ -1098,7 +1197,7 @@ async fn fetch_deepseek(
 
 async fn run_deepseek(app: tauri::AppHandle, status: Arc<Mutex<DeepSeekStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.7.1")
+        .user_agent("HAL/1.7.2")
         .build()
         .expect("failed to create DeepSeek client");
 
@@ -1145,6 +1244,64 @@ fn opencode_get(
     }
 }
 
+async fn opencode_json<T: serde::de::DeserializeOwned>(
+    client: &reqwest::Client,
+    url: String,
+    password: Option<&str>,
+) -> Option<T> {
+    let response = opencode_get(client, url, password).send().await.ok()?;
+    if !response.status().is_success() {
+        return None;
+    }
+    response.json::<T>().await.ok()
+}
+
+fn opencode_location_url(base_url: &str, path: &str, directory: &str) -> Option<String> {
+    let mut url = reqwest::Url::parse(&format!("{base_url}{path}")).ok()?;
+    url.query_pairs_mut()
+        .append_pair("location[directory]", directory);
+    Some(url.into())
+}
+
+fn opencode_tool_file(input: &serde_json::Value) -> Option<String> {
+    ["path", "filePath", "file", "filename"]
+        .iter()
+        .find_map(|key| input.get(*key).and_then(|value| value.as_str()))
+        .map(str::to_string)
+}
+
+fn opencode_latest_tool(messages: &[OpenCodeMessage]) -> (Option<String>, Option<String>) {
+    let mut fallback: (Option<String>, Option<String>) = (None, None);
+
+    for message in messages {
+        for part in message.content.iter().rev() {
+            if part.kind != "tool" {
+                continue;
+            }
+
+            let file = part
+                .state
+                .as_ref()
+                .and_then(|state| state.input.as_ref())
+                .and_then(opencode_tool_file);
+            let running = part
+                .state
+                .as_ref()
+                .and_then(|state| state.status.as_deref())
+                == Some("running");
+
+            if running {
+                return (part.name.clone(), file);
+            }
+            if fallback.0.is_none() {
+                fallback = (part.name.clone(), file);
+            }
+        }
+    }
+
+    fallback
+}
+
 async fn fetch_opencode(
     client: &reqwest::Client,
     base_url: &str,
@@ -1172,47 +1329,98 @@ async fn fetch_opencode(
         .iter()
         .filter(|(_, session)| session.kind == "running")
         .count();
-    let session_id = active
+    let active_id = active
         .data
         .iter()
         .find(|(_, session)| session.kind == "running")
-        .map(|(id, _)| id.as_str());
+        .map(|(id, _)| id.clone());
 
-    let pending_permissions = match opencode_get(
+    let pending_permissions = opencode_json::<OpenCodePermissionsResponse>(
         client,
         format!("{base_url}/api/permission/request"),
         password,
     )
-    .send()
     .await
-    {
-        Ok(response) if response.status().is_success() => response
-            .json::<OpenCodePermissionsResponse>()
-            .await
-            .map(|response| response.data.len())
-            .unwrap_or(0),
-        _ => 0,
+    .map(|response| response.data.len())
+    .unwrap_or(0);
+
+    let session = match &active_id {
+        Some(id) => opencode_json::<OpenCodeSessionResponse>(
+            client,
+            format!("{base_url}/api/session/{id}"),
+            password,
+        )
+        .await
+        .map(|response| response.data),
+        None => opencode_json::<OpenCodeSessionsResponse>(
+            client,
+            format!("{base_url}/api/session?limit=1&order=desc"),
+            password,
+        )
+        .await
+        .and_then(|response| response.data.into_iter().next()),
     };
 
-    let session = match session_id {
-        Some(id) => match opencode_get(client, format!("{base_url}/api/session/{id}"), password)
-            .send()
-            .await
-        {
-            Ok(response) if response.status().is_success() => response
-                .json::<OpenCodeSessionResponse>()
-                .await
-                .ok()
-                .map(|response| response.data),
-            _ => None,
-        },
-        None => None,
-    };
-    let tokens = session
+    let session_id = session
         .as_ref()
-        .and_then(|session| session.tokens.as_ref())
+        .and_then(|session| session.id.clone())
+        .or(active_id);
+
+    let directory = session
+        .as_ref()
+        .and_then(|session| session.location.as_ref())
+        .and_then(|location| location.directory.clone());
+
+    let (tool, file) = match &session_id {
+        Some(id) => opencode_json::<OpenCodeMessagesResponse>(
+            client,
+            format!("{base_url}/api/session/{id}/message?limit=1&order=desc"),
+            password,
+        )
+        .await
+        .map(|response| opencode_latest_tool(&response.data))
+        .unwrap_or((None, None)),
+        None => (None, None),
+    };
+
+    let mut branch = None;
+    let mut changed_files = 0;
+
+    if let Some(directory) = &directory {
+        if let Some(url) = opencode_location_url(base_url, "/api/vcs/branch", directory) {
+            branch = opencode_json::<OpenCodeBranchResponse>(client, url, password)
+                .await
+                .and_then(|response| response.data.into_iter().next());
+        }
+        if let Some(url) = opencode_location_url(base_url, "/api/vcs/status", directory) {
+            changed_files = opencode_json::<OpenCodeVcsResponse>(client, url, password)
+                .await
+                .map(|response| response.data.len())
+                .unwrap_or(0);
+        }
+    }
+
+    let (go_percent, go_resets_at) = opencode_json::<OpenCodeUsageResponse>(
+        client,
+        format!("{base_url}/api/experimental/usage/limits"),
+        password,
+    )
+    .await
+    .and_then(|response| response.data)
+    .and_then(|usage| usage.go)
+    .and_then(|go| go.rolling)
+    .map(|meter| (meter.percent, meter.resets_at))
+    .unwrap_or((None, None));
+
+    let tokens = session.as_ref().and_then(|session| session.tokens.as_ref());
+    let tokens_total = tokens
         .map(|tokens| tokens.input + tokens.output + tokens.reasoning)
         .unwrap_or(0);
+    let cache_tokens = tokens.map(|tokens| tokens.cache.read).unwrap_or(0);
+    let cost = session
+        .as_ref()
+        .and_then(|session| session.cost)
+        .unwrap_or(0.0);
 
     Ok(OpenCodeStatus {
         state: if pending_permissions > 0 {
@@ -1222,15 +1430,28 @@ async fn fetch_opencode(
         } else {
             "EN ESPERA".to_string()
         },
+        session_id,
         title: session.as_ref().and_then(|session| session.title.clone()),
         agent: session.as_ref().and_then(|session| session.agent.clone()),
         model: session
             .as_ref()
             .and_then(|session| session.model.as_ref())
             .and_then(|model| model.id.clone()),
-        tokens,
+        provider: session
+            .as_ref()
+            .and_then(|session| session.model.as_ref())
+            .and_then(|model| model.provider_id.clone()),
+        tokens: tokens_total,
+        cache_tokens,
+        cost,
         active_sessions,
         pending_permissions,
+        tool,
+        file,
+        branch,
+        changed_files,
+        go_percent,
+        go_resets_at,
         fetched_at: Utc::now().timestamp(),
         ok: true,
         error: None,
@@ -1239,7 +1460,7 @@ async fn fetch_opencode(
 
 async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.7.1")
+        .user_agent("HAL/1.7.2")
         .timeout(Duration::from_secs(3))
         .build()
         .expect("failed to create OpenCode client");
@@ -1275,7 +1496,7 @@ async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeSt
 
 async fn run_bitcoin_alert(app: tauri::AppHandle, bitcoin_status: Arc<Mutex<BitcoinStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.7.1")
+        .user_agent("HAL/1.7.2")
         .build()
         .expect("failed to create Bitcoin client");
     let mut was_below_threshold = false;

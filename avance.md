@@ -1,5 +1,12 @@
 # Avance de HAL
 
+## 2026-10-28
+
+- [x] Ampliada la vista OpenCode con herramienta y archivo en uso, ultima sesion en reposo, modelo, tokens con coste, rama y archivos modificados.
+- [x] Añadida rotacion interna de detalles cada 1,5 segundos y permanencia de seis segundos en el ciclo.
+- [x] Añadida lectura opcional de `/api/experimental/usage/limits` y documentado que el API no informa tiempo restante del nivel gratuito.
+- [x] Actualizada la version local a `1.7.2`, README, changelog y politica de seguridad.
+
 ## 2026-10-27
 
 - [x] Corregida la autorizacion de la vista OpenCode para usar localmente la contraseña privada del servicio, sin guardarla en HAL.

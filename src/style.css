@@ -71,8 +71,8 @@ output {
   grid-template-columns: auto 1fr;
   grid-template-rows: auto auto;
   align-items: center;
-  column-gap: 8px;
-  width: 112px;
+  column-gap: 7px;
+  width: 124px;
   opacity: 0;
   color: var(--text-color);
   font-family: Consolas, "Cascadia Mono", monospace;
@@ -90,8 +90,8 @@ output {
 
 .w-opencode b {
   overflow: hidden;
-  font-size: 13px;
-  letter-spacing: 0.04em;
+  font-size: 11px;
+  letter-spacing: 0.03em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

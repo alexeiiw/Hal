@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.2
+
+- Amplia la vista OpenCode con la herramienta y el archivo en uso, la ultima sesion cuando no hay actividad, modelo, tokens con coste, rama y archivos modificados.
+- Rota los detalles cada 1,5 segundos mientras la vista esta visible y la mantiene seis segundos en el ciclo.
+- Consulta `/api/session?limit=1`, `/api/session/{id}/message`, `/api/vcs/branch`, `/api/vcs/status` y `/api/experimental/usage/limits`, sin leer prompts ni contenido.
+- Muestra `GO <porcentaje>%` solo cuando el servidor informa cuota de OpenCode Console; documenta que el API no expone tiempo restante en el nivel gratuito.
+- Amplia `/status` con herramienta, tokens y coste de OpenCode.
+
 ## 1.7.1
 
 - Autoriza la vista OpenCode contra el servicio local estándar mediante su contraseña privada, sin copiarla a la configuración de HAL.

@@ -52,12 +52,22 @@ type DeepSeekStatus = {
 };
 type OpenCodeStatus = {
   state: string;
+  sessionId: string | null;
   title: string | null;
   agent: string | null;
   model: string | null;
+  provider: string | null;
   tokens: number;
+  cacheTokens: number;
+  cost: number;
   activeSessions: number;
   pendingPermissions: number;
+  tool: string | null;
+  file: string | null;
+  branch: string | null;
+  changedFiles: number;
+  goPercent: number | null;
+  goResetsAt: number | null;
   fetchedAt: number;
   ok: boolean;
   error: string | null;
@@ -268,6 +278,35 @@ function formatTokens(tokens: number): string {
   return String(Math.max(0, Math.round(tokens)));
 }
 
+const openCodeActions: Record<string, string> = {
+  patch: "EDITANDO",
+  edit: "EDITANDO",
+  write: "EDITANDO",
+  read: "LEYENDO",
+  grep: "BUSCANDO",
+  glob: "BUSCANDO",
+  shell: "EJECUTANDO",
+  webfetch: "CONSULTANDO",
+  websearch: "CONSULTANDO",
+  task: "DELEGANDO",
+  browser: "NAVEGANDO",
+  question: "PREGUNTANDO",
+  todowrite: "PLANIFICANDO",
+  todoread: "PLANIFICANDO",
+};
+
+function openCodeAction(tool: string): string {
+  return openCodeActions[tool.toLowerCase()] ?? tool.toUpperCase();
+}
+
+function openCodeFile(path: string): string {
+  return path.replace(/[\\/]+$/, "").split(/[\\/]/).pop() ?? path;
+}
+
+function clipText(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
 function updateOpenCode(): void {
   if (!openCode || !openCode.ok) {
     ocState!.textContent = "SIN SERVIDOR";
@@ -276,20 +315,47 @@ function updateOpenCode(): void {
   }
 
   ocState!.textContent = openCode.pendingPermissions > 0 ? "PERMISO" : openCode.state;
-  ocCount!.textContent = openCode.activeSessions > 0 ? `${openCode.activeSessions} SESION` : "LOCAL";
+  ocCount!.textContent = openCode.tool
+    ? openCodeAction(openCode.tool)
+    : openCode.branch
+      ? openCode.branch.toUpperCase()
+      : "LOCAL";
 }
 
 function openCodeLines(): string[] {
   if (!openCode || !openCode.ok) return [openCode?.error ?? "OPENCODE NO DISP."];
 
-  const lines = [
-    `OPENCODE ${openCode.state}`,
-    openCode.pendingPermissions > 0 ? `${openCode.pendingPermissions} PERMISO PENDIENTE` : "SIN PERMISOS PENDIENTES",
-    openCode.activeSessions > 0 ? `${openCode.activeSessions} SESION ACTIVA` : "SIN SESION ACTIVA",
-  ];
-  if (openCode.title) lines.push(openCode.title);
-  if (openCode.agent || openCode.model) lines.push([openCode.agent, openCode.model].filter(Boolean).join(" · "));
-  if (openCode.tokens > 0) lines.push(`${formatTokens(openCode.tokens)} TOKENS`);
+  const lines = [`OC ${openCode.state}`];
+
+  if (openCode.pendingPermissions > 0) {
+    lines.push(`${openCode.pendingPermissions} PERMISO PENDIENTE`);
+  }
+
+  if (openCode.tool) {
+    const file = openCode.file ? ` ${openCodeFile(openCode.file)}` : "";
+    lines.push(clipText(`${openCodeAction(openCode.tool)}${file}`, 20));
+  }
+
+  if (openCode.title) lines.push(clipText(openCode.title.toUpperCase(), 20));
+  if (openCode.model) lines.push(clipText(openCode.model, 20));
+
+  if (openCode.tokens > 0) {
+    lines.push(`${formatTokens(openCode.tokens)} TOK · $${openCode.cost.toFixed(2)}`);
+  }
+
+  if (openCode.branch) {
+    lines.push(
+      clipText(
+        openCode.changedFiles > 0
+          ? `${openCode.branch.toUpperCase()} · ${openCode.changedFiles} ARCH`
+          : openCode.branch.toUpperCase(),
+        20,
+      ),
+    );
+  }
+
+  if (openCode.goPercent != null) lines.push(`GO ${Math.round(openCode.goPercent)}%`);
+
   return lines;
 }
 
@@ -600,8 +666,8 @@ void listen<DeepSeekStatus>("evento-deepseek", (event) => {
 });
 
 void listen<OpenCodeStatus>("evento-opencode-estado", (event) => {
+  if (event.payload.sessionId !== openCode?.sessionId) openCodeDetail = 0;
   openCode = event.payload;
-  openCodeDetail = 0;
 });
 
 void listen<HalMode>("evento-modo", (event) => {
@@ -694,11 +760,24 @@ async function refreshBitcoin(): Promise<void> {
   localStorage.setItem(bitcoinCacheKey, JSON.stringify(bitcoin));
 }
 
+function scheduleViewRotation(): void {
+  window.setTimeout(
+    () => {
+      const views = activeViews();
+      const next = views[(views.indexOf(metricView) + 1) % views.length];
+      metricView = next;
+      if (next === "opencode") openCodeDetail = 0;
+      scheduleViewRotation();
+    },
+    metricView === "opencode" ? 6000 : 4000,
+  );
+}
+
+scheduleViewRotation();
+
 window.setInterval(() => {
-  const views = activeViews();
   if (metricView === "opencode") openCodeDetail += 1;
-  metricView = views[(views.indexOf(metricView) + 1) % views.length];
-}, 4000);
+}, 1500);
 
 loadHalSettings();
 refreshWeather();

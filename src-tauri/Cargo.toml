@@ -1,6 +1,6 @@
 [package]
 name = "hal"
-version = "1.7.1"
+version = "1.7.2"
 description = "Indicador flotante de recursos y clima"
 authors = ["HAL"]
 edition = "2021"
