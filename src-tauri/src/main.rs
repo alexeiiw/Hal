@@ -975,7 +975,7 @@ async fn run_telegram(
     }
 
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.7.2")
+        .user_agent("HAL/1.8.0")
         .build()
         .expect("failed to create Telegram client");
 
@@ -1115,7 +1115,7 @@ async fn fetch_copilot(client: &reqwest::Client, token: &str) -> Result<CopilotS
 
 async fn run_copilot(app: tauri::AppHandle, status: Arc<Mutex<CopilotStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.7.2")
+        .user_agent("HAL/1.8.0")
         .build()
         .expect("failed to create Copilot client");
 
@@ -1197,7 +1197,7 @@ async fn fetch_deepseek(
 
 async fn run_deepseek(app: tauri::AppHandle, status: Arc<Mutex<DeepSeekStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.7.2")
+        .user_agent("HAL/1.8.0")
         .build()
         .expect("failed to create DeepSeek client");
 
@@ -1460,7 +1460,7 @@ async fn fetch_opencode(
 
 async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.7.2")
+        .user_agent("HAL/1.8.0")
         .timeout(Duration::from_secs(3))
         .build()
         .expect("failed to create OpenCode client");
@@ -1496,7 +1496,7 @@ async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeSt
 
 async fn run_bitcoin_alert(app: tauri::AppHandle, bitcoin_status: Arc<Mutex<BitcoinStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.7.2")
+        .user_agent("HAL/1.8.0")
         .build()
         .expect("failed to create Bitcoin client");
     let mut was_below_threshold = false;

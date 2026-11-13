@@ -25,6 +25,10 @@ const dsArc = document.querySelector<SVGCircleElement>("#ds-arc");
 const dsBalance = document.querySelector<HTMLElement>("#ds-balance");
 const ocState = document.querySelector<HTMLElement>("#oc-state");
 const ocCount = document.querySelector<HTMLElement>("#oc-count");
+const pagerEl = document.querySelector<HTMLElement>(".w-pager");
+const pagerLines = Array.from(document.querySelectorAll<HTMLElement>(".pager-line"));
+const pagerTime = document.querySelector<HTMLElement>("#pager-time");
+const pagerDate = document.querySelector<HTMLElement>("#pager-date");
 type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo" | "red" | "copilot" | "deepseek" | "opencode";
 type WeatherKind = "clear" | "cloud" | "fog" | "rain" | "snow" | "storm";
 type BitcoinQuote = { price: number; previousPrice: number | null; updatedAt: number };
@@ -83,7 +87,7 @@ const halSettingsKey = "hal-settings";
 const halClockResetKey = "hal-clock-once";
 const allViews: MetricView[] = ["cpu", "memory", "red", "weather", "clock", "bitcoin", "face", "task", "photo", "copilot", "deepseek", "opencode"];
 
-if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !photoImg || !netLine || !netUpLine || !netArea || !netDownEl || !netUpEl || !copArc || !copUsed || !copTotal || !dsArc || !dsBalance || !ocState || !ocCount || bars.length !== 5) {
+if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !photoImg || !netLine || !netUpLine || !netArea || !netDownEl || !netUpEl || !copArc || !copUsed || !copTotal || !dsArc || !dsBalance || !ocState || !ocCount || !pagerEl || !pagerTime || !pagerDate || pagerLines.length !== 3 || bars.length !== 5) {
   throw new Error("La interfaz HAL no se pudo inicializar.");
 }
 
@@ -100,6 +104,8 @@ let lastClockMinute = "";
 let halMode: HalMode = "normal";
 let phrase: string | null = null;
 let task: string | null = null;
+let lastPagerTask: string | null = null;
+let pagerNewTimeout = 0;
 let notice: string | null = null;
 let noticeTimeout = 0;
 let netDownRate = 0;
@@ -143,6 +149,7 @@ function loadHalSettings(): void {
     }
     phrase = typeof saved.phrase === "string" ? saved.phrase : null;
     task = typeof saved.task === "string" ? saved.task : null;
+    lastPagerTask = task;
     enabledViews = { ...enabledViews, ...saved.enabledViews };
   } catch {
     localStorage.removeItem(halSettingsKey);
@@ -221,6 +228,90 @@ function updateClock(): void {
   clockDisplay = `HAL ${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
   clockHour!.setAttribute("transform", `rotate(${(hours % 12) * 30 + minutes * 0.5} 32 32)`);
   clockMinute!.setAttribute("transform", `rotate(${minutes * 6} 32 32)`);
+}
+
+const pagerColumns = 18;
+const pagerRows = 3;
+
+function pagerWrap(text: string): string[] {
+  const words = text.trim().toUpperCase().split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let line = "";
+
+  for (const word of words) {
+    if (word.length > pagerColumns) {
+      if (line) {
+        lines.push(line);
+        line = "";
+      }
+
+      for (let index = 0; index < word.length; index += pagerColumns) {
+        lines.push(word.slice(index, index + pagerColumns));
+      }
+
+      line = lines.pop() ?? "";
+      continue;
+    }
+
+    if (!line) {
+      line = word;
+    } else if (`${line} ${word}`.length <= pagerColumns) {
+      line = `${line} ${word}`;
+    } else {
+      lines.push(line);
+      line = word;
+    }
+  }
+
+  if (line) lines.push(line);
+
+  if (lines.length > pagerRows) {
+    const kept = lines.slice(0, pagerRows);
+    const last = kept[pagerRows - 1];
+    kept[pagerRows - 1] = `${last.slice(0, pagerColumns - 3)}...`;
+    return kept;
+  }
+
+  while (lines.length < pagerRows) lines.push("");
+  return lines;
+}
+
+function updatePager(): void {
+  const now = new Date();
+  pagerTime!.textContent = `${now.getHours().toString().padStart(2, "0")}:${now
+    .getMinutes()
+    .toString()
+    .padStart(2, "0")}`;
+  pagerDate!.textContent = `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1)
+    .toString()
+    .padStart(2, "0")}/${now.getFullYear().toString().slice(-2)}`;
+
+  const message = task ? pagerWrap(task) : ["SIN MENSAJES", "", ""];
+  pagerLines.forEach((line, index) => {
+    line.textContent = message[index] ?? "";
+    line.style.transform = "";
+
+    if (line.scrollWidth > line.clientWidth && line.clientWidth > 0) {
+      line.style.transform = `scaleX(${line.clientWidth / line.scrollWidth})`;
+    }
+  });
+  pagerEl!.setAttribute(
+    "aria-label",
+    task ? `Buscapersonas HAL: ${task}` : "Buscapersonas HAL: sin mensajes",
+  );
+
+  if (task === lastPagerTask) return;
+
+  lastPagerTask = task;
+  window.clearTimeout(pagerNewTimeout);
+
+  if (!task) {
+    root!.classList.remove("pager-new");
+    return;
+  }
+
+  root!.classList.add("pager-new");
+  pagerNewTimeout = window.setTimeout(() => root!.classList.remove("pager-new"), 3000);
 }
 
 function bitcoinQuote(): BitcoinQuote | null {
@@ -604,6 +695,7 @@ function animateBars(): void {
   updateCopilot();
   updateDeepSeek();
   updateOpenCode();
+  updatePager();
   root!.style.setProperty("--tempo", `${tempo}ms`);
   metricOutput!.value = metric.display;
   metricOutput!.textContent = metricOutput!.value;
@@ -697,6 +789,7 @@ void listen<string | null>("evento-frase", (event) => {
 void listen<string | null>("evento-tarea", (event) => {
   task = event.payload;
   if (metricView === "task" && !task) metricView = activeViews()[0];
+  updatePager();
   saveHalSettings();
 });
 

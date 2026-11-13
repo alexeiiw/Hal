@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.0
+
+- Sustituye la linea inferior de la vista de tarea por un buscapersonas Motorola Advisor con LCD verde, teclas, D-pad y marca.
+- Reparte la tarea en hasta tres lineas de 18 caracteres en mayusculas, con hora `HH:MM`, fecha `DD/MM/AA` y LED de mensaje nuevo.
+- Mantiene el LCD verde fijo, independiente del color del modo, y la vista solo aparece cuando hay tarea.
+- Incluye localmente la fuente pixel Silkscreen (OFL) con respaldo a Consolas.
+- Conserva la linea inferior y el ojo de aviso cuando hay un recordatorio activo.
+
 ## 1.7.2
 
 - Amplia la vista OpenCode con la herramienta y el archivo en uso, la ultima sesion cuando no hay actividad, modelo, tokens con coste, rama y archivos modificados.

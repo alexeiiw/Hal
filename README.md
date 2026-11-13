@@ -1,6 +1,6 @@
-# HAL 1.7.2
+# HAL 1.8.0
 
-HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, creditos de GitHub Copilot, saldo de DeepSeek, actividad de OpenCode, tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
+HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, creditos de GitHub Copilot, saldo de DeepSeek, actividad de OpenCode, un buscapersonas con la tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
 
 ## Comportamiento
 
@@ -29,7 +29,7 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, re
 | DeepSeek | No aplica | `alert_below` | Anillo y saldo en el color del modo, amarillo y rojo |
 | OpenCode | No aplica | No aplica | Tarjeta terminal en el color del modo |
 | Mascota HAL | No aplica | No aplica | Cabeza con visor, ojos, brillo y antena en el color del modo |
-| Tarea | No aplica | No aplica | Lente unico estilo HAL con insignia de prioridad |
+| Tarea | No aplica | No aplica | Buscapersonas Motorola con LCD verde y mensaje en mayusculas |
 | Foto | No aplica | No aplica | Foto local a pantalla completa |
 
 Cada vista conserva su metrica durante cuatro segundos. Las barras de CPU usan `Math.random()` acotado por la metrica visible. La vista de clima muestra un icono SVG de sol verde, nubes y niebla celeste, lluvia azul, nieve blanco azulado o tormenta violeta. El reloj analogico muestra solo hora y minutos, con la lectura `HAL HH:MM`. La vista de red muestra la velocidad de bajada y subida en MB/s con dos ondas (bajada solida y subida punteada).
@@ -105,9 +105,17 @@ HAL lee `%APPDATA%\HAL\opencode.json`:
 
 El API de OpenCode no informa cuanto tiempo queda en los modelos gratuitos. `GET /api/experimental/usage/limits` solo devuelve datos (`rolling`, `weekly`, `monthly` con porcentaje y fecha de renovacion) cuando hay una sesion iniciada en OpenCode Console; sin ella responde `data: null`, y los limites del nivel gratuito solo se manifiestan como errores de rate limit al generar. HAL muestra `GO <porcentaje>%` cuando ese dato existe.
 
+## Tarea
+
+La vista de tarea sustituye el mensaje inferior por un buscapersonas Motorola Advisor recreado en CSS y SVG: cuerpo oscuro, altavoz, LED de mensaje nuevo, LCD verde de tres lineas, hora y fecha, teclas decorativas, D-pad y la marca MOTOROLA ADVISOR. Solo aparece cuando hay una tarea definida; con `/task clear` desaparece del ciclo.
+
+El mensaje se escribe en mayusculas y se reparte en hasta tres lineas de 18 caracteres, por lo que una tarea de 30 caracteres cabe en dos lineas. Si una linea excede el ancho del LCD se comprime ligeramente para no recortar el texto. El reloj del pager usa formato de 24 horas (`HH:MM`) y la fecha `DD/MM/AA`. El LED parpadea durante unos tres segundos cuando llega una tarea nueva. El LCD mantiene el verde fijo y no hereda el color del modo. La ventana es click-through, asi que las teclas y el D-pad son decorativos.
+
+La fuente pixel Silkscreen (licencia OFL, incluida en `src/assets`) se carga localmente, sin depender de Internet, con Consolas como respaldo.
+
 ## Mascota HAL
 
-La vista de mascota muestra una cabeza SVG con casco redondeado, visor, dos ojos luminosos con brillo y una antena; su lectura es `HAL EN LINEA`. Los modos añaden capucha para developer, lentes para focus, audifonos con notas para relax y, en happy, ojos cerrados, sonrisa y rubor. Todos los trazos usan el color del modo, de modo que la cara es estable y no cambia con la carga de CPU. La vista de tarea, en cambio, usa un lente unico estilo HAL con la insignia de prioridad.
+La vista de mascota muestra una cabeza SVG con casco redondeado, visor, dos ojos luminosos con brillo y una antena; su lectura es `HAL EN LINEA`. Los modos añaden capucha para developer, lentes para focus, audifonos con notas para relax y, en happy, ojos cerrados, sonrisa y rubor. Todos los trazos usan el color del modo, de modo que la cara es estable y no cambia con la carga de CPU.
 
 ## Fotos
 
@@ -176,8 +184,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.7.2_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_1.7.2_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.8.0_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_1.8.0_x64_en-US.msi`
 
 ## Desarrollo
 
@@ -197,7 +205,7 @@ npm run tauri build
 ## Arquitectura
 
 - `src-tauri/src/main.rs`: mide CPU, RAM, red, procesos y OpenCode una vez por segundo; recibe comandos, mantiene avisos, envia alertas de Telegram, consulta los creditos de Copilot, el saldo de DeepSeek y el estado de OpenCode, y expone las fotos locales.
-- `src/main.ts`: alterna CPU, RAM, red, clima, reloj, Bitcoin, Copilot, DeepSeek, mascota, tarea y foto; conserva modos, vistas, frase y tarea localmente.
-- `src/style.css`: define el HUD, iconos, anillo de RAM, widget de red, anillos de Copilot y DeepSeek, marco de fotos, reloj analogico SVG, mascota por modo, tarea, avisos y estado visual de Bitcoin.
+- `src/main.ts`: alterna CPU, RAM, red, clima, reloj, Bitcoin, Copilot, DeepSeek, mascota, tarea y foto; conserva modos, vistas, frase y tarea localmente; reparte el mensaje del pager y actualiza su reloj.
+- `src/style.css`: define el HUD, iconos, anillo de RAM, widget de red, anillos de Copilot y DeepSeek, marco de fotos, reloj analogico SVG, mascota por modo, buscapersonas de tarea, avisos y estado visual de Bitcoin.
 
 HAL mide la CPU global deliberadamente. La deteccion de OpenCode solo modifica el patron y frecuencia de animacion; no registra actividad, no analiza contenido y no cambia la metrica mostrada. Para el clima, el navegador solicita ubicacion y envia las coordenadas a Open-Meteo; HAL no las guarda. El reloj no realiza llamadas ni crea temporizadores propios: reutiliza el ciclo visual y cambia sus agujas solo al cambiar el minuto. Para Bitcoin, HAL guarda solo el precio, el precio anterior y la fecha de consulta en el almacenamiento local. Para Copilot, HAL lee `%APPDATA%\HAL\copilot.json` y consulta `api.github.com` con el token del usuario; no envia esos datos a ningun otro servicio. Para DeepSeek, HAL lee `%APPDATA%\HAL\deepseek.json` y consulta `api.deepseek.com` con la clave del usuario; tampoco envia esos datos a otros servicios.

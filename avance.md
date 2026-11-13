@@ -2,6 +2,14 @@
 
 ## 2026-10-28
 
+- [x] Sustituida la linea inferior de la vista de tarea por un buscapersonas Motorola Advisor con LCD verde.
+- [x] Añadidos reparto del mensaje en tres lineas, reloj, fecha y LED de mensaje nuevo.
+- [x] Incluida la fuente pixel Silkscreen (OFL) con respaldo a Consolas.
+- [x] Conservado el aviso con ojo rojo y la linea inferior cuando hay un recordatorio activo.
+- [x] Actualizada la version local a `1.8.0`, README, changelog y nombres de instaladores.
+
+## 2026-10-28
+
 - [x] Ampliada la vista OpenCode con herramienta y archivo en uso, ultima sesion en reposo, modelo, tokens con coste, rama y archivos modificados.
 - [x] Añadida rotacion interna de detalles cada 1,5 segundos y permanencia de seis segundos en el ciclo.
 - [x] Añadida lectura opcional de `/api/experimental/usage/limits` y documentado que el API no informa tiempo restante del nivel gratuito.
