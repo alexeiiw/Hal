@@ -607,10 +607,10 @@ output {
 
 .pager-dpad {
   position: absolute;
-  top: 64px;
-  right: 12px;
-  width: 36px;
-  height: 36px;
+  top: 63px;
+  right: 10px;
+  width: 35px;
+  height: 35px;
 }
 
 .dpad-base {
@@ -632,27 +632,27 @@ output {
 .pager-brand {
   position: absolute;
   bottom: 7px;
-  left: 12px;
+  left: 11px;
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   color: #8d9095;
 }
 
 .pager-logo {
   display: grid;
   place-items: center;
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border: 1px solid currentColor;
   border-radius: 50%;
   font-family: "Silkscreen", monospace;
-  font-size: 6px;
+  font-size: 5.5px;
   line-height: 1;
 }
 
 .pager-name {
-  font-size: 7px;
+  font-size: 6px;
   font-style: italic;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -660,8 +660,8 @@ output {
 
 .pager-model {
   margin-left: 1px;
-  font-size: 5px;
-  letter-spacing: 0.16em;
+  font-size: 4.5px;
+  letter-spacing: 0.12em;
   opacity: 0.85;
 }
 
