@@ -962,22 +962,7 @@ void listen<OutlookAviso>("evento-outlook-aviso", (event) => {
 
 async function fetchWeatherCity(latitude: number, longitude: number): Promise<string> {
   try {
-    const response = await fetch(
-      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=es`,
-    );
-
-    if (!response.ok) {
-      return "";
-    }
-
-    const data = (await response.json()) as {
-      city?: string;
-      locality?: string;
-      principalSubdivision?: string;
-      countryName?: string;
-    };
-
-    return (data.city || data.locality || data.principalSubdivision || data.countryName || "").trim();
+    return await invoke<string>("weather_city", { latitude, longitude });
   } catch {
     return "";
   }

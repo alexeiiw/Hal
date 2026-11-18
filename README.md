@@ -1,4 +1,4 @@
-# HAL 1.9.2
+# HAL 1.9.3
 
 HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, creditos de GitHub Copilot, saldo de DeepSeek, actividad de OpenCode, la agenda y el correo de Outlook, un buscapersonas con la tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
 
@@ -12,7 +12,7 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, re
 - Muestra la RAM como un anillo de progreso con el porcentaje en el centro.
 - Detecta la ejecucion de `OpenCode.exe` y, en la vista de CPU, sustituye el ecualizador por una onda sinusoidal SVG sin cambiar la metrica global.
 - Consulta la temperatura y condicion meteorologica al iniciar y cada 30 minutos mediante Open-Meteo.
-- Traduce las coordenadas a un nombre de ciudad con BigDataCloud para mostrarlo bajo el icono del clima.
+- Traduce las coordenadas a un nombre de ciudad con BigDataCloud para mostrarlo bajo el icono del clima. La consulta sale desde el backend de HAL, no desde la ventana.
 - Solicita la ubicacion del sistema para el clima. Si se deniega el permiso o falla la consulta, muestra `CLIMA NO DISP.`.
 - Consulta los creditos de Copilot al iniciar y cada 30 minutos desde `%APPDATA%\HAL\copilot.json`.
 - Consulta el saldo de DeepSeek al iniciar y cada 30 minutos desde `%APPDATA%\HAL\deepseek.json`.
@@ -209,8 +209,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.9.2_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_1.9.2_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.9.3_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_1.9.3_x64_en-US.msi`
 
 ## Desarrollo
 

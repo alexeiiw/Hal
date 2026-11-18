@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.3
+
+- Muestra la ciudad bajo el icono del clima: la consulta de geocodificacion inversa pasa al backend de HAL (`weather_city`), porque la ciudad no aparecia desde la ventana.
+
 ## 1.9.2
 
 - Corrige `/aviso 08:30 texto`, que devolvia "La hora debe tener formato HH:MM" al añadir texto.

@@ -415,6 +415,29 @@ fn is_image(path: &std::path::Path) -> bool {
 }
 
 #[tauri::command]
+async fn weather_city(latitude: f64, longitude: f64) -> String {
+    let Ok(client) = reqwest::Client::builder().user_agent("HAL/1.9.3").build() else {
+        return String::new();
+    };
+    let url = format!(
+        "https://api.bigdatacloud.net/data/reverse-geocode-client?latitude={latitude}&longitude={longitude}&localityLanguage=es"
+    );
+    let Ok(response) = client.get(url).send().await else {
+        return String::new();
+    };
+    let Ok(data) = response.json::<serde_json::Value>().await else {
+        return String::new();
+    };
+    ["city", "locality", "principalSubdivision", "countryName"]
+        .iter()
+        .filter_map(|key| data[*key].as_str())
+        .map(str::trim)
+        .find(|value| !value.is_empty())
+        .unwrap_or("")
+        .to_string()
+}
+
+#[tauri::command]
 fn list_photos() -> Vec<String> {
     let mut names = fs::read_dir(photos_dir())
         .map(|entries| {
@@ -1061,7 +1084,7 @@ async fn run_telegram(
     }
 
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.2")
+        .user_agent("HAL/1.9.3")
         .build()
         .expect("failed to create Telegram client");
 
@@ -1203,7 +1226,7 @@ async fn fetch_copilot(client: &reqwest::Client, token: &str) -> Result<CopilotS
 
 async fn run_copilot(app: tauri::AppHandle, status: Arc<Mutex<CopilotStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.2")
+        .user_agent("HAL/1.9.3")
         .build()
         .expect("failed to create Copilot client");
 
@@ -1285,7 +1308,7 @@ async fn fetch_deepseek(
 
 async fn run_deepseek(app: tauri::AppHandle, status: Arc<Mutex<DeepSeekStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.2")
+        .user_agent("HAL/1.9.3")
         .build()
         .expect("failed to create DeepSeek client");
 
@@ -1548,7 +1571,7 @@ async fn fetch_opencode(
 
 async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.2")
+        .user_agent("HAL/1.9.3")
         .timeout(Duration::from_secs(3))
         .build()
         .expect("failed to create OpenCode client");
@@ -1584,7 +1607,7 @@ async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeSt
 
 async fn run_bitcoin_alert(app: tauri::AppHandle, bitcoin_status: Arc<Mutex<BitcoinStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.2")
+        .user_agent("HAL/1.9.3")
         .build()
         .expect("failed to create Bitcoin client");
     let mut was_below_threshold = false;
@@ -1749,7 +1772,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             sync_hal_state,
             list_photos,
-            read_photo
+            read_photo,
+            weather_city
         ])
         .run(tauri::generate_context!())
         .expect("error while running HAL");

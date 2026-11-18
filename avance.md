@@ -2,6 +2,11 @@
 
 ## 2026-11-18
 
+- [x] Movida la consulta de ciudad del clima al backend (`weather_city`) para que muestre la ciudad bajo el icono.
+- [x] Actualizada la version local a `1.9.3`, README y changelog.
+
+## 2026-11-18
+
 - [x] Corregido el parser de `/aviso` para aceptar texto despues de la hora o los minutos, y conservarlo en la alerta.
 - [x] Actualizada la version local a `1.9.2`, ayuda, README y changelog.
 
