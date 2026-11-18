@@ -59,7 +59,7 @@ output {
 
 .equalizer,
 .signal,
-.weather-icon,
+.w-weather,
 .hal-clock,
 .btc-icon,
 .hal-face,
@@ -71,6 +71,15 @@ output {
 .w-opencode,
 .w-agenda {
   grid-area: 1 / 1;
+}
+
+.w-weather {
+  place-self: center;
+  display: grid;
+  justify-items: center;
+  row-gap: 3px;
+  opacity: 0;
+  transition: opacity 140ms ease;
 }
 
 .w-agenda {
@@ -207,12 +216,23 @@ output {
 }
 
 .weather-icon {
-  place-self: center;
-  width: 82px;
-  height: 82px;
+  width: 64px;
+  height: 64px;
   overflow: visible;
-  opacity: 0;
-  transition: opacity 140ms ease;
+}
+
+#weather-city {
+  max-width: 132px;
+  overflow: hidden;
+  font-family: "Silkscreen", Consolas, monospace;
+  font-size: 8px;
+  line-height: 10px;
+  letter-spacing: 0.03em;
+  color: var(--weather-color);
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow: 0 0 6px var(--weather-glow);
 }
 
 .hal-clock {
@@ -951,7 +971,7 @@ output {
   opacity: 0;
 }
 
-#hal.weather-view .weather-icon {
+#hal.weather-view .w-weather {
   opacity: 1;
 }
 
@@ -1123,7 +1143,7 @@ output {
 }
 
 #hal.notice-active .equalizer,
-#hal.notice-active .weather-icon,
+#hal.notice-active .w-weather,
 #hal.notice-active .hal-clock,
 #hal.notice-active .btc-icon,
 #hal.notice-active .hal-face,

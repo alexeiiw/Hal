@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.1
+
+- Muestra el nombre de la ciudad bajo el icono del clima, obtenido por geocodificacion inversa de las coordenadas con BigDataCloud.
+- Mantiene la lectura de temperatura y condicion en la linea inferior y funciona sin ciudad si el servicio de geocodificacion no responde.
+- Actualiza la documentacion y la politica de seguridad con la nueva solicitud de red.
+
 ## 1.9.0
 
 - Añade la vista de agenda (`/on agenda`, alias `calendario` y `citas`) con la proxima cita de Outlook, su hora y asunto en dos lineas y el pie `HOY n · MAIL n`.

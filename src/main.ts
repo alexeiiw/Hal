@@ -8,6 +8,7 @@ const root = document.querySelector<HTMLElement>("#hal");
 const wavePath = document.querySelector<SVGPathElement>("#wave-path");
 const waveTail = document.querySelector<SVGPathElement>("#wave-tail");
 const weatherIcon = document.querySelector<SVGSVGElement>("#weather-icon");
+const weatherCity = document.querySelector<HTMLElement>("#weather-city");
 const clockHour = document.querySelector<SVGPathElement>("#clock-hour");
 const clockMinute = document.querySelector<SVGPathElement>("#clock-minute");
 const gaugeArc = document.querySelector<SVGCircleElement>("#gauge-arc");
@@ -103,13 +104,13 @@ const halSettingsKey = "hal-settings";
 const halClockResetKey = "hal-clock-once";
 const allViews: MetricView[] = ["cpu", "memory", "red", "weather", "clock", "agenda", "bitcoin", "face", "task", "photo", "copilot", "deepseek", "opencode"];
 
-if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !photoImg || !netLine || !netUpLine || !netArea || !netDownEl || !netUpEl || !copArc || !copUsed || !copTotal || !dsArc || !dsBalance || !ocState || !ocCount || !pagerEl || !pagerTime || !pagerDate || !agendaTime || !agendaFoot || agendaTitle.length !== 2 || pagerLines.length !== 3 || bars.length !== 5) {
+if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !weatherCity || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !photoImg || !netLine || !netUpLine || !netArea || !netDownEl || !netUpEl || !copArc || !copUsed || !copTotal || !dsArc || !dsBalance || !ocState || !ocCount || !pagerEl || !pagerTime || !pagerDate || !agendaTime || !agendaFoot || agendaTitle.length !== 2 || pagerLines.length !== 3 || bars.length !== 5) {
   throw new Error("La interfaz HAL no se pudo inicializar.");
 }
 
 let cpu = 0;
 let memory = 0;
-let weather: { temperature: number; code: number } | null = null;
+let weather: { temperature: number; code: number; city: string } | null = null;
 let bitcoin: BitcoinQuote | null = null;
 let opencodeActive = false;
 let opencodeCpu = 0;
@@ -959,18 +960,45 @@ void listen<OutlookAviso>("evento-outlook-aviso", (event) => {
   );
 });
 
+async function fetchWeatherCity(latitude: number, longitude: number): Promise<string> {
+  try {
+    const response = await fetch(
+      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=es`,
+    );
+
+    if (!response.ok) {
+      return "";
+    }
+
+    const data = (await response.json()) as {
+      city?: string;
+      locality?: string;
+      principalSubdivision?: string;
+      countryName?: string;
+    };
+
+    return (data.city || data.locality || data.principalSubdivision || data.countryName || "").trim();
+  } catch {
+    return "";
+  }
+}
+
 async function loadWeather(position: GeolocationPosition): Promise<void> {
   const { latitude, longitude } = position.coords;
-  const response = await fetch(
-    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code`,
-  );
+  const [response, city] = await Promise.all([
+    fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code`,
+    ),
+    fetchWeatherCity(latitude, longitude),
+  ]);
   const data = (await response.json()) as {
     current?: { temperature_2m: number; weather_code: number };
   };
 
   if (data.current) {
-    weather = { temperature: data.current.temperature_2m, code: data.current.weather_code };
+    weather = { temperature: data.current.temperature_2m, code: data.current.weather_code, city };
     weatherIcon!.innerHTML = weatherIconMarkup(weather.code);
+    weatherCity!.textContent = city;
     setWeatherPalette(weather.code);
   }
 }
