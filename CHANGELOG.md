@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.4
+
+- Añade la vista `correo` (`/on correo`, alias `ultimo`) con el remitente, el asunto y el estado (leido o no) del ultimo correo recibido en Outlook, mas el contador `MAIL n`.
+- La tarjeta se muestra en la rotacion y se oculta durante los avisos; sin Outlook abierto muestra `OUTLOOK CERRADO` o `SIN ACCESO`.
+- Actualiza README, `/help` e `/inventory`.
+
 ## 1.9.3
 
 - Muestra la ciudad bajo el icono del clima: la consulta de geocodificacion inversa pasa al backend de HAL (`weather_city`), porque la ciudad no aparecia desde la ventana.

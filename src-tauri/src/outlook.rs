@@ -47,6 +47,7 @@ pub struct OutlookStatus {
     pub tomorrow: u32,
     pub next: Option<AgendaEvent>,
     pub agenda: Vec<AgendaEvent>,
+    pub last_mail: Option<MailPreview>,
     pub fetched_at: i64,
 }
 
@@ -227,6 +228,11 @@ fn build_status(line: &BridgeLine) -> OutlookStatus {
         tomorrow: tomorrow_count,
         next,
         agenda,
+        last_mail: line.mail.first().map(|mail| MailPreview {
+            sender: mail.sender.clone(),
+            subject: mail.subject.clone(),
+            unread: mail.unread,
+        }),
         fetched_at: now,
     }
 }
@@ -262,7 +268,7 @@ fn telegram_push(text: String) {
     let Some(chat_id) = config.chat_id else { return };
     let token = config.token;
     tauri::async_runtime::spawn(async move {
-        let Ok(client) = reqwest::Client::builder().user_agent("HAL/1.9.3").build() else {
+        let Ok(client) = reqwest::Client::builder().user_agent("HAL/1.9.4").build() else {
             return;
         };
         telegram_send(&client, &token, chat_id, &text).await;

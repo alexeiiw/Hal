@@ -1,4 +1,4 @@
-# HAL 1.9.3
+# HAL 1.9.4
 
 HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, creditos de GitHub Copilot, saldo de DeepSeek, actividad de OpenCode, la agenda y el correo de Outlook, un buscapersonas con la tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
 
@@ -27,6 +27,7 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, re
 | Clima | No aplica | No aplica | Semantico segun la condicion |
 | Reloj | No aplica | No aplica | Esfera tecnica verde de HAL |
 | Agenda | No aplica | 15 min antes de la cita | Tarjeta con hora, asunto y pie `HOY n · MAIL n` en el color del modo |
+| Correo | No aplica | No aplica | Tarjeta con remitente, asunto y estado del ultimo correo recibido |
 | Bitcoin | No aplica | $76,000 USD visual | Naranja, verde/rojo y alerta roja |
 | Copilot | 70% usado | 90% usado | Anillo en el color del modo, azul y rojo |
 | DeepSeek | No aplica | `alert_below` | Anillo y saldo en el color del modo, amarillo y rojo |
@@ -159,7 +160,7 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/mode developer` | Capucha y acentos cian |
 | `/mode focus` | Lentes y acentos azules |
 | `/mode relax` | Auriculares y acentos violetas |
-| `/on nombre` | Activa `cpu`, `ram`, `red`, `clima`, `reloj`, `btc`, `cara`, `tarea`, `foto`, `cop`, `ds`, `oc` o `agenda` |
+| `/on nombre` | Activa `cpu`, `ram`, `red`, `clima`, `reloj`, `btc`, `cara`, `tarea`, `foto`, `cop`, `ds`, `oc`, `agenda` o `correo` |
 | `/off nombre` | Desactiva una vista del ciclo |
 | `/off hal` | Cierra HAL de forma remota |
 | `/btc alert 80000` | Fija el aviso remoto de BTC cuando el precio sea igual o menor a $80,000 USD |
@@ -209,8 +210,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.9.3_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_1.9.3_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.9.4_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_1.9.4_x64_en-US.msi`
 
 ## Desarrollo
 

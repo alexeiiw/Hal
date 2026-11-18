@@ -2,6 +2,11 @@
 
 ## 2026-11-18
 
+- [x] Añadida la vista fija `correo` con remitente, asunto y estado del ultimo correo recibido.
+- [x] Actualizada la version local a `1.9.4`, README, ayuda y changelog.
+
+## 2026-11-18
+
 - [x] Movida la consulta de ciudad del clima al backend (`weather_city`) para que muestre la ciudad bajo el icono.
 - [x] Actualizada la version local a `1.9.3`, README y changelog.
 

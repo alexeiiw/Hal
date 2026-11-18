@@ -33,7 +33,10 @@ const pagerDate = document.querySelector<HTMLElement>("#pager-date");
 const agendaTime = document.querySelector<HTMLElement>("#agenda-time");
 const agendaTitle = Array.from(document.querySelectorAll<HTMLElement>("#agenda-title span"));
 const agendaFoot = document.querySelector<HTMLElement>("#agenda-foot");
-type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo" | "red" | "copilot" | "deepseek" | "opencode" | "agenda";
+const mailSender = document.querySelector<HTMLElement>("#mail-sender");
+const mailSubject = document.querySelector<HTMLElement>("#mail-subject");
+const mailState = document.querySelector<HTMLElement>("#mail-state");
+type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo" | "red" | "copilot" | "deepseek" | "opencode" | "agenda" | "mail";
 type WeatherKind = "clear" | "cloud" | "fog" | "rain" | "snow" | "storm";
 type BitcoinQuote = { price: number; previousPrice: number | null; updatedAt: number };
 type NetworkSample = { down: number; up: number };
@@ -92,6 +95,7 @@ type OutlookStatus = {
   tomorrow: number;
   next: AgendaEvent | null;
   agenda: AgendaEvent[];
+  lastMail: { sender: string; subject: string; unread: boolean } | null;
   fetchedAt: number;
 };
 type OutlookAviso = { kind: "cita" | "mail"; text: string };
@@ -102,9 +106,9 @@ const bitcoinCacheMaxAgeMs = 24 * 60 * 60 * 1000;
 const bitcoinBuyThreshold = 76_000;
 const halSettingsKey = "hal-settings";
 const halClockResetKey = "hal-clock-once";
-const allViews: MetricView[] = ["cpu", "memory", "red", "weather", "clock", "agenda", "bitcoin", "face", "task", "photo", "copilot", "deepseek", "opencode"];
+const allViews: MetricView[] = ["cpu", "memory", "red", "weather", "clock", "agenda", "mail", "bitcoin", "face", "task", "photo", "copilot", "deepseek", "opencode"];
 
-if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !weatherCity || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !photoImg || !netLine || !netUpLine || !netArea || !netDownEl || !netUpEl || !copArc || !copUsed || !copTotal || !dsArc || !dsBalance || !ocState || !ocCount || !pagerEl || !pagerTime || !pagerDate || !agendaTime || !agendaFoot || agendaTitle.length !== 2 || pagerLines.length !== 3 || bars.length !== 5) {
+if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !weatherCity || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !photoImg || !netLine || !netUpLine || !netArea || !netDownEl || !netUpEl || !copArc || !copUsed || !copTotal || !dsArc || !dsBalance || !ocState || !ocCount || !pagerEl || !pagerTime || !pagerDate || !agendaTime || !agendaFoot || !mailSender || !mailSubject || !mailState || agendaTitle.length !== 2 || pagerLines.length !== 3 || bars.length !== 5) {
   throw new Error("La interfaz HAL no se pudo inicializar.");
 }
 
@@ -140,6 +144,7 @@ let enabledViews: Record<MetricView, boolean> = {
   weather: true,
   clock: true,
   agenda: true,
+  mail: true,
   bitcoin: true,
   face: true,
   task: true,
@@ -356,6 +361,37 @@ function setAgendaTitle(lines: string[]): void {
 function dayStamp(timestamp: number): string {
   const date = new Date(timestamp * 1000);
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+function updateMail(): void {
+  const status = outlook;
+
+  if (!status || !status.running) {
+    mailSender!.textContent = "OUTLOOK CERRADO";
+    mailSubject!.textContent = "";
+    mailState!.textContent = "";
+    return;
+  }
+
+  if (!status.ok) {
+    mailSender!.textContent = "SIN ACCESO";
+    mailSubject!.textContent = "";
+    mailState!.textContent = "";
+    return;
+  }
+
+  const last = status.lastMail;
+
+  if (!last) {
+    mailSender!.textContent = "SIN CORREO";
+    mailSubject!.textContent = "";
+    mailState!.textContent = `MAIL ${status.unread}`;
+    return;
+  }
+
+  mailSender!.textContent = last.sender;
+  mailSubject!.textContent = last.subject;
+  mailState!.textContent = `${last.unread ? "NO LEIDO" : "LEIDO"} · MAIL ${status.unread}`;
 }
 
 function updateAgenda(): void {
@@ -754,6 +790,10 @@ function currentMetric(): {
     return { display, value: 0, busyAt: 101, criticalAt: 102 };
   }
 
+  if (metricView === "mail") {
+    return { display: "CORREO", value: 0, busyAt: 101, criticalAt: 102 };
+  }
+
   if (metricView === "agenda") {
     if (!outlook || !outlook.running) {
       return { display: "OUTLOOK CERRADO", value: 0, busyAt: 101, criticalAt: 102 };
@@ -811,7 +851,7 @@ function animateBars(): void {
   const globalTempo = overloaded ? 110 : busy ? 220 : 460;
   const waveTempo = Math.max(60, 440 / (1 + opencodeCpu * 0.15));
   const showOpenCodeWave = metricView === "cpu" && opencodeActive;
-  const staticView = notice !== null || metricView === "clock" || metricView === "bitcoin" || metricView === "face" || metricView === "task" || metricView === "memory" || metricView === "photo" || metricView === "red" || metricView === "copilot" || metricView === "deepseek" || metricView === "opencode" || metricView === "agenda" || (metricView === "weather" && weather !== null);
+  const staticView = notice !== null || metricView === "clock" || metricView === "bitcoin" || metricView === "face" || metricView === "task" || metricView === "memory" || metricView === "photo" || metricView === "red" || metricView === "copilot" || metricView === "deepseek" || metricView === "opencode" || metricView === "agenda" || metricView === "mail" || (metricView === "weather" && weather !== null);
   const tempo = staticView ? 1000 : showOpenCodeWave ? waveTempo : globalTempo;
 
   root!.classList.toggle("overloaded", overloaded);
@@ -834,6 +874,7 @@ function animateBars(): void {
   root!.classList.toggle("ds-empty", metricView === "deepseek" && !!deepseek && deepseek.ok && (!deepseek.available || deepseek.total <= deepseek.alertBelow));
   root!.classList.toggle("opencode-view", metricView === "opencode");
   root!.classList.toggle("agenda-view", metricView === "agenda");
+  root!.classList.toggle("mail-view", metricView === "mail");
   root!.classList.toggle("agenda-error", metricView === "agenda" && (!outlook || !outlook.running || !outlook.ok));
   root!.classList.toggle("agenda-empty", metricView === "agenda" && !!outlook && outlook.running && outlook.ok && outlook.next === null);
   root!.classList.toggle("notice-active", notice !== null);
@@ -847,6 +888,7 @@ function animateBars(): void {
   updateOpenCode();
   updatePager();
   updateAgenda();
+  updateMail();
   root!.style.setProperty("--tempo", `${tempo}ms`);
   metricOutput!.value = metric.display;
   metricOutput!.textContent = metricOutput!.value;

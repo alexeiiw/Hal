@@ -416,7 +416,7 @@ fn is_image(path: &std::path::Path) -> bool {
 
 #[tauri::command]
 async fn weather_city(latitude: f64, longitude: f64) -> String {
-    let Ok(client) = reqwest::Client::builder().user_agent("HAL/1.9.3").build() else {
+    let Ok(client) = reqwest::Client::builder().user_agent("HAL/1.9.4").build() else {
         return String::new();
     };
     let url = format!(
@@ -574,7 +574,7 @@ fn parse_bitcoin_alert_price(value: &str) -> Result<f64, String> {
 fn inventory_status(config: &TelegramConfig) -> String {
     let views = [
         "cpu", "ram", "red", "clima", "reloj", "btc", "cara", "tarea", "foto", "cop", "ds", "oc",
-        "agenda",
+        "agenda", "correo",
     ];
     let active = views
         .iter()
@@ -731,7 +731,7 @@ async fn handle_telegram_command(
     }
 
     let response = if text == "/help" || text == "/start" {
-        "Comandos:\n/help\n/pair\n/status\n/inventory\n/mode normal|developer|focus|relax|happy\n/on nombre (cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop, ds, oc, agenda)\n/off nombre\n/off hal\n/agenda\n/cita 15 | /cita 0\n/mail\n/mail aviso on|off\n/mail preview remitente|asunto|ambos|off\n/outlook\n/btc alert precio | /btc alert | /btc off\n/phrase texto | /phrase clear\n/task texto | /task clear\n/aviso 10 [texto] o 08:00 [texto]\n/aviso list | /aviso cancel"
+        "Comandos:\n/help\n/pair\n/status\n/inventory\n/mode normal|developer|focus|relax|happy\n/on nombre (cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop, ds, oc, agenda, correo)\n/off nombre\n/off hal\n/agenda\n/cita 15 | /cita 0\n/mail\n/mail aviso on|off\n/mail preview remitente|asunto|ambos|off\n/outlook\n/btc alert precio | /btc alert | /btc off\n/phrase texto | /phrase clear\n/task texto | /task clear\n/aviso 10 [texto] o 08:00 [texto]\n/aviso list | /aviso cancel"
             .to_string()
     } else if text == "/inventory" {
         format!(
@@ -1029,12 +1029,13 @@ fn set_view(
         "ds" | "deepseek" => "deepseek",
         "oc" | "opencode" => "opencode",
         "agenda" | "calendario" | "citas" => "agenda",
+        "correo" | "ultimo" => "mail",
         view => view,
     };
 
     match view {
         "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo" | "red"
-        | "copilot" | "deepseek" | "opencode" | "agenda" => {
+        | "copilot" | "deepseek" | "opencode" | "agenda" | "mail" => {
             if enabled {
                 config.disabled_views.retain(|disabled| disabled != view);
             } else if !config
@@ -1058,7 +1059,7 @@ fn set_view(
             )
         }
         _ => {
-            "Vista inválida. Usa cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop, ds, oc o agenda."
+            "Vista inválida. Usa cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop, ds, oc, agenda o correo."
                 .to_string()
         }
     }
@@ -1084,7 +1085,7 @@ async fn run_telegram(
     }
 
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.3")
+        .user_agent("HAL/1.9.4")
         .build()
         .expect("failed to create Telegram client");
 
@@ -1226,7 +1227,7 @@ async fn fetch_copilot(client: &reqwest::Client, token: &str) -> Result<CopilotS
 
 async fn run_copilot(app: tauri::AppHandle, status: Arc<Mutex<CopilotStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.3")
+        .user_agent("HAL/1.9.4")
         .build()
         .expect("failed to create Copilot client");
 
@@ -1308,7 +1309,7 @@ async fn fetch_deepseek(
 
 async fn run_deepseek(app: tauri::AppHandle, status: Arc<Mutex<DeepSeekStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.3")
+        .user_agent("HAL/1.9.4")
         .build()
         .expect("failed to create DeepSeek client");
 
@@ -1571,7 +1572,7 @@ async fn fetch_opencode(
 
 async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.3")
+        .user_agent("HAL/1.9.4")
         .timeout(Duration::from_secs(3))
         .build()
         .expect("failed to create OpenCode client");
@@ -1607,7 +1608,7 @@ async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeSt
 
 async fn run_bitcoin_alert(app: tauri::AppHandle, bitcoin_status: Arc<Mutex<BitcoinStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.3")
+        .user_agent("HAL/1.9.4")
         .build()
         .expect("failed to create Bitcoin client");
     let mut was_below_threshold = false;
