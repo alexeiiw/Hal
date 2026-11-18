@@ -1,6 +1,6 @@
-# HAL 1.8.0
+# HAL 1.9.0
 
-HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, creditos de GitHub Copilot, saldo de DeepSeek, actividad de OpenCode, un buscapersonas con la tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
+HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, creditos de GitHub Copilot, saldo de DeepSeek, actividad de OpenCode, la agenda y el correo de Outlook, un buscapersonas con la tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
 
 ## Comportamiento
 
@@ -8,7 +8,7 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, re
 - Permanece sobre otras ventanas, pero los clics atraviesan HAL hacia la aplicacion de debajo.
 - Se coloca abajo a la derecha del area util del monitor.
 - Se muestra como un HUD sin borde, fondo ni panel de cristal para dar prioridad a los iconos.
-- Alterna CPU global, RAM principal, red, clima, reloj analogico, Bitcoin, Copilot, DeepSeek, OpenCode, mascota HAL y foto cada cuatro segundos (seis en OpenCode); añade tarea prioritaria si esta definida.
+- Alterna CPU global, RAM principal, red, clima, reloj analogico, agenda de Outlook, Bitcoin, Copilot, DeepSeek, OpenCode, mascota HAL y foto cada cuatro segundos (seis en OpenCode); añade tarea prioritaria si esta definida.
 - Muestra la RAM como un anillo de progreso con el porcentaje en el centro.
 - Detecta la ejecucion de `OpenCode.exe` y, en la vista de CPU, sustituye el ecualizador por una onda sinusoidal SVG sin cambiar la metrica global.
 - Consulta la temperatura y condicion meteorologica al iniciar y cada 30 minutos mediante Open-Meteo.
@@ -16,6 +16,7 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, re
 - Consulta los creditos de Copilot al iniciar y cada 30 minutos desde `%APPDATA%\HAL\copilot.json`.
 - Consulta el saldo de DeepSeek al iniciar y cada 30 minutos desde `%APPDATA%\HAL\deepseek.json`.
 - Consulta el servidor local de OpenCode cada 5 segundos desde `%APPDATA%\HAL\opencode.json` y muestra estado, herramienta, archivo, sesion, modelo, tokens, coste, permisos y rama.
+- Lee la agenda y el correo de Outlook cada 45 segundos mientras Outlook clasico esta abierto; nunca arranca Outlook por su cuenta.
 
 | Vista | Umbral medio | Umbral alto | Colores |
 | --- | --- | --- | --- |
@@ -24,6 +25,7 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, re
 | Red | No aplica | No aplica | Onda de bajada verde y subida celeste |
 | Clima | No aplica | No aplica | Semantico segun la condicion |
 | Reloj | No aplica | No aplica | Esfera tecnica verde de HAL |
+| Agenda | No aplica | 15 min antes de la cita | Tarjeta con hora, asunto y pie `HOY n · MAIL n` en el color del modo |
 | Bitcoin | No aplica | $76,000 USD visual | Naranja, verde/rojo y alerta roja |
 | Copilot | 70% usado | 90% usado | Anillo en el color del modo, azul y rojo |
 | DeepSeek | No aplica | `alert_below` | Anillo y saldo en el color del modo, amarillo y rojo |
@@ -105,6 +107,18 @@ HAL lee `%APPDATA%\HAL\opencode.json`:
 
 El API de OpenCode no informa cuanto tiempo queda en los modelos gratuitos. `GET /api/experimental/usage/limits` solo devuelve datos (`rolling`, `weekly`, `monthly` con porcentaje y fecha de renovacion) cuando hay una sesion iniciada en OpenCode Console; sin ella responde `data: null`, y los limites del nivel gratuito solo se manifiestan como errores de rate limit al generar. HAL muestra `GO <porcentaje>%` cuando ese dato existe.
 
+## Outlook
+
+La vista de agenda (`/on agenda`, tambien `calendario` o `citas`) lee el calendario y la bandeja de entrada de las versiones clasicas de Outlook instaladas en el equipo, mediante COM y el perfil ya configurado. No usa Microsoft Graph, no necesita permisos de administrador ni consentimiento de TI, y no escribe nada en el buzon: solo lectura.
+
+La vista muestra la proxima cita con su hora y asunto en dos lineas de 18 caracteres, y el pie `HOY n · MAIL n` con las citas que quedan hoy y el correo sin leer. Si no quedan citas hoy, la lista continua con las de mañana; si no hay ninguna en 48 horas, muestra `SIN CITAS` y sigue mostrando el correo pendiente. Si Outlook esta cerrado, la vista queda en `SIN ACCESO` con el pie `OUTLOOK CERRADO`, y si el acceso COM falla, `ERROR OUTLOOK` en ambar. HAL nunca abre Outlook: toma los datos de la instancia que el usuario ya tiene abierta, aunque este minimizada.
+
+Cada 15 minutos antes de una cita, HAL muestra un aviso en la ventana con la hora y el asunto y, si Telegram esta vinculado, envia el mismo aviso al chat. El aviso se emite una sola vez por cita, usando el identificador global y la hora de inicio, y se guarda en `%APPDATA%\HAL\outlook-avisos.json` con dos dias de antiguedad maxima.
+
+Para el correo, HAL lee solo remitente, asunto, fecha y estado de los cinco mensajes mas recientes de la bandeja de entrada; nunca lee el cuerpo ni los adjuntos. Cuando llega correo nuevo sin leer muestra una vista previa de 8 segundos como maximo cada dos minutos, agrupada si llegan varios. El modo del preview se controla con `/mail preview asunto`, `remitente`, `ambos` u `off`, y el aviso por Telegram es independiente con `/mail aviso on` y `/mail aviso off` (desactivado por defecto).
+
+La integracion se apoya en un puente de PowerShell persistente (`outlook-bridge.ps1`) que HAL escribe en `%APPDATA%\HAL` al arrancar y vigila por si deja de responder; si el proceso muere, HAL lo reinicia. El puente se ejecuta sin ventana y con `-ExecutionPolicy Bypass`, por lo que funciona con la politica de ejecucion restringida del equipo. HAL comprueba antes que `outlook.exe` este en ejecucion; si no lo esta, el puente no toca COM y solo informa del estado.
+
 ## Tarea
 
 La vista de tarea sustituye el mensaje inferior por un buscapersonas Motorola Advisor recreado en CSS y SVG: cuerpo oscuro, altavoz, LED de mensaje nuevo, LCD verde de tres lineas, hora y fecha, teclas decorativas, D-pad y la marca MOTOROLA ADVISOR. Solo aparece cuando hay una tarea definida; con `/task clear` desaparece del ciclo.
@@ -144,7 +158,7 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/mode developer` | Capucha y acentos cian |
 | `/mode focus` | Lentes y acentos azules |
 | `/mode relax` | Auriculares y acentos violetas |
-| `/on nombre` | Activa `cpu`, `ram`, `red`, `clima`, `reloj`, `btc`, `cara`, `tarea`, `foto`, `cop`, `ds` u `oc` |
+| `/on nombre` | Activa `cpu`, `ram`, `red`, `clima`, `reloj`, `btc`, `cara`, `tarea`, `foto`, `cop`, `ds`, `oc` o `agenda` |
 | `/off nombre` | Desactiva una vista del ciclo |
 | `/off hal` | Cierra HAL de forma remota |
 | `/btc alert 80000` | Fija el aviso remoto de BTC cuando el precio sea igual o menor a $80,000 USD |
@@ -158,7 +172,15 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/aviso 08:00` | Programa un aviso para la proxima hora local 08:00 |
 | `/aviso list` | Lista los avisos activos |
 | `/aviso cancel` | Cancela todos los avisos |
-| `/status` | Informa CPU, RAM, BTC y su alerta remota, Copilot, DeepSeek, OpenCode (estado, herramienta, tokens y coste), modo, tarea y vistas activas |
+| `/agenda` | Muestra las proximas citas de Outlook con hora y asunto |
+| `/cita` | Muestra el aviso de citas activo |
+| `/cita 15` | Fija el aviso de citas a 15 minutos antes (`/cita 0` lo apaga) |
+| `/mail` | Muestra el correo sin leer y los mensajes mas recientes |
+| `/mail aviso on` | Activa el aviso de correo nuevo por Telegram |
+| `/mail aviso off` | Desactiva el aviso de correo por Telegram |
+| `/mail preview asunto` | Cambia la vista previa de correo a solo asunto (`remitente`, `ambos` u `off`) |
+| `/outlook` | Muestra el estado de la conexion con Outlook |
+| `/status` | Informa CPU, RAM, BTC y su alerta remota, Copilot, DeepSeek, OpenCode (estado, herramienta, tokens y coste), Outlook (sin leer y proxima cita), modo, tarea y vistas activas |
 
 Los modos, las vistas activas, la frase, la tarea, los avisos y el umbral remoto de BTC se guardan localmente en HAL y se conservan al reiniciar. Al cumplirse un aviso, HAL muestra el ojo rojo de HAL con pulso y parpadeo durante 30 segundos y Telegram recibe una confirmacion. `/status` informa CPU, RAM, BTC y su alerta, Copilot, DeepSeek, OpenCode, modo, tarea y vistas activas. Telegram solo se consulta para recibir comandos; si no hay token o red, HAL sigue funcionando normalmente. La vista Copilot se controla igual con `/on cop` y `/off cop`, su token se guarda aparte en `copilot.json`; DeepSeek usa `/on ds` y `deepseek.json`; OpenCode usa `/on oc` y `opencode.json`.
 
@@ -184,8 +206,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.8.0_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_1.8.0_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.9.0_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_1.9.0_x64_en-US.msi`
 
 ## Desarrollo
 
@@ -205,7 +227,15 @@ npm run tauri build
 ## Arquitectura
 
 - `src-tauri/src/main.rs`: mide CPU, RAM, red, procesos y OpenCode una vez por segundo; recibe comandos, mantiene avisos, envia alertas de Telegram, consulta los creditos de Copilot, el saldo de DeepSeek y el estado de OpenCode, y expone las fotos locales.
-- `src/main.ts`: alterna CPU, RAM, red, clima, reloj, Bitcoin, Copilot, DeepSeek, mascota, tarea y foto; conserva modos, vistas, frase y tarea localmente; reparte el mensaje del pager y actualiza su reloj.
-- `src/style.css`: define el HUD, iconos, anillo de RAM, widget de red, anillos de Copilot y DeepSeek, marco de fotos, reloj analogico SVG, mascota por modo, buscapersonas de tarea, avisos y estado visual de Bitcoin.
+- `src-tauri/src/outlook.rs`: lanza y vigila el puente de Outlook, normaliza la agenda y el correo, decide los avisos de cita y correo, y evita duplicados con `%APPDATA%\HAL\outlook-avisos.json`.
+- `src-tauri/resources/outlook-bridge.ps1`: proceso persistente en PowerShell que lee Outlook por COM (solo lectura) y entrega una linea JSON por ciclo.
+- `src/main.ts`: alterna CPU, RAM, red, clima, reloj, agenda, Bitcoin, Copilot, DeepSeek, mascota, tarea y foto; conserva modos, vistas, frase y tarea localmente; reparte el mensaje del pager y actualiza su reloj.
+- `src/style.css`: define el HUD, iconos, anillo de RAM, widget de red, anillos de Copilot y DeepSeek, tarjeta de agenda, marco de fotos, reloj analogico SVG, mascota por modo, buscapersonas de tarea, avisos y estado visual de Bitcoin.
 
-HAL mide la CPU global deliberadamente. La deteccion de OpenCode solo modifica el patron y frecuencia de animacion; no registra actividad, no analiza contenido y no cambia la metrica mostrada. Para el clima, el navegador solicita ubicacion y envia las coordenadas a Open-Meteo; HAL no las guarda. El reloj no realiza llamadas ni crea temporizadores propios: reutiliza el ciclo visual y cambia sus agujas solo al cambiar el minuto. Para Bitcoin, HAL guarda solo el precio, el precio anterior y la fecha de consulta en el almacenamiento local. Para Copilot, HAL lee `%APPDATA%\HAL\copilot.json` y consulta `api.github.com` con el token del usuario; no envia esos datos a ningun otro servicio. Para DeepSeek, HAL lee `%APPDATA%\HAL\deepseek.json` y consulta `api.deepseek.com` con la clave del usuario; tampoco envia esos datos a otros servicios.
+HAL mide la CPU global deliberadamente. La deteccion de OpenCode solo modifica el patron y frecuencia de animacion; no registra actividad, no analiza contenido y no cambia la metrica mostrada. Para el clima, el navegador solicita ubicacion y envia las coordenadas a Open-Meteo; HAL no las guarda. El reloj no realiza llamadas ni crea temporizadores propios: reutiliza el ciclo visual y cambia sus agujas solo al cambiar el minuto. Para Bitcoin, HAL guarda solo el precio, el precio anterior y la fecha de consulta en el almacenamiento local. Para Copilot, HAL lee `%APPDATA%\HAL\copilot.json` y consulta `api.github.com` con el token del usuario; no envia esos datos a ningun otro servicio. Para DeepSeek, HAL lee `%APPDATA%\HAL\deepseek.json` y consulta `api.deepseek.com` con la clave del usuario; tampoco envia esos datos a otros servicios. Para Outlook, HAL solo lee del perfil local lo necesario para la agenda y el preview (remitente, asunto, fecha y estado), no accede al cuerpo ni a los adjuntos y no envia nada a Internet salvo el texto del aviso a Telegram cuando el usuario lo activa.
+
+## Licencia
+
+MIT. Consulta [LICENSE](LICENSE).
+
+La tipografia Silkscreen incluida en `src/assets` se distribuye bajo la SIL Open Font License 1.1 (`src/assets/Silkscreen-OFL.txt`) y no queda cubierta por esta licencia.

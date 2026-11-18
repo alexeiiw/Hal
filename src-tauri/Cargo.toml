@@ -1,8 +1,9 @@
 [package]
 name = "hal"
-version = "1.8.0"
+version = "1.9.0"
 description = "Indicador flotante de recursos y clima"
 authors = ["HAL"]
+license = "MIT"
 edition = "2021"
 
 [build-dependencies]

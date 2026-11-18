@@ -29,7 +29,10 @@ const pagerEl = document.querySelector<HTMLElement>(".w-pager");
 const pagerLines = Array.from(document.querySelectorAll<HTMLElement>(".pager-line"));
 const pagerTime = document.querySelector<HTMLElement>("#pager-time");
 const pagerDate = document.querySelector<HTMLElement>("#pager-date");
-type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo" | "red" | "copilot" | "deepseek" | "opencode";
+const agendaTime = document.querySelector<HTMLElement>("#agenda-time");
+const agendaTitle = Array.from(document.querySelectorAll<HTMLElement>("#agenda-title span"));
+const agendaFoot = document.querySelector<HTMLElement>("#agenda-foot");
+type MetricView = "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo" | "red" | "copilot" | "deepseek" | "opencode" | "agenda";
 type WeatherKind = "clear" | "cloud" | "fog" | "rain" | "snow" | "storm";
 type BitcoinQuote = { price: number; previousPrice: number | null; updatedAt: number };
 type NetworkSample = { down: number; up: number };
@@ -78,6 +81,19 @@ type OpenCodeStatus = {
 };
 type HalMode = "normal" | "developer" | "focus" | "relax" | "happy";
 type ViewChange = { view: MetricView; enabled: boolean };
+type AgendaEvent = { id: string; subject: string; start: number; end: number; allDay: boolean };
+type OutlookStatus = {
+  running: boolean;
+  ok: boolean;
+  error: string | null;
+  unread: number;
+  today: number;
+  tomorrow: number;
+  next: AgendaEvent | null;
+  agenda: AgendaEvent[];
+  fetchedAt: number;
+};
+type OutlookAviso = { kind: "cita" | "mail"; text: string };
 
 const bitcoinCacheKey = "hal-bitcoin-usd";
 const bitcoinRefreshMs = 6 * 60 * 60 * 1000;
@@ -85,9 +101,9 @@ const bitcoinCacheMaxAgeMs = 24 * 60 * 60 * 1000;
 const bitcoinBuyThreshold = 76_000;
 const halSettingsKey = "hal-settings";
 const halClockResetKey = "hal-clock-once";
-const allViews: MetricView[] = ["cpu", "memory", "red", "weather", "clock", "bitcoin", "face", "task", "photo", "copilot", "deepseek", "opencode"];
+const allViews: MetricView[] = ["cpu", "memory", "red", "weather", "clock", "agenda", "bitcoin", "face", "task", "photo", "copilot", "deepseek", "opencode"];
 
-if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !photoImg || !netLine || !netUpLine || !netArea || !netDownEl || !netUpEl || !copArc || !copUsed || !copTotal || !dsArc || !dsBalance || !ocState || !ocCount || !pagerEl || !pagerTime || !pagerDate || pagerLines.length !== 3 || bars.length !== 5) {
+if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !photoImg || !netLine || !netUpLine || !netArea || !netDownEl || !netUpEl || !copArc || !copUsed || !copTotal || !dsArc || !dsBalance || !ocState || !ocCount || !pagerEl || !pagerTime || !pagerDate || !agendaTime || !agendaFoot || agendaTitle.length !== 2 || pagerLines.length !== 3 || bars.length !== 5) {
   throw new Error("La interfaz HAL no se pudo inicializar.");
 }
 
@@ -107,6 +123,7 @@ let task: string | null = null;
 let lastPagerTask: string | null = null;
 let pagerNewTimeout = 0;
 let notice: string | null = null;
+let noticeLabel = "AVISO";
 let noticeTimeout = 0;
 let netDownRate = 0;
 let netUpRate = 0;
@@ -114,12 +131,14 @@ let copilot: CopilotStatus | null = null;
 let deepseek: DeepSeekStatus | null = null;
 let openCode: OpenCodeStatus | null = null;
 let openCodeDetail = 0;
+let outlook: OutlookStatus | null = null;
 let enabledViews: Record<MetricView, boolean> = {
   cpu: true,
   memory: true,
   red: true,
   weather: true,
   clock: true,
+  agenda: true,
   bitcoin: true,
   face: true,
   task: true,
@@ -312,6 +331,100 @@ function updatePager(): void {
 
   root!.classList.add("pager-new");
   pagerNewTimeout = window.setTimeout(() => root!.classList.remove("pager-new"), 3000);
+}
+
+function formatClock(timestamp: number): string {
+  const date = new Date(timestamp * 1000);
+  return `${date.getHours().toString().padStart(2, "0")}:${date
+    .getMinutes()
+    .toString()
+    .padStart(2, "0")}`;
+}
+
+function setAgendaTitle(lines: string[]): void {
+  agendaTitle.forEach((line, index) => {
+    line.textContent = lines[index] ?? "";
+    line.style.transform = "";
+
+    if (line.scrollWidth > line.clientWidth && line.clientWidth > 0) {
+      line.style.transform = `scaleX(${line.clientWidth / line.scrollWidth})`;
+    }
+  });
+}
+
+function dayStamp(timestamp: number): string {
+  const date = new Date(timestamp * 1000);
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+function updateAgenda(): void {
+  const status = outlook;
+
+  if (!status || !status.running) {
+    agendaTime!.textContent = "··:··";
+    setAgendaTitle(["SIN", "ACCESO"]);
+    agendaFoot!.textContent = "OUTLOOK CERRADO";
+    return;
+  }
+
+  if (!status.ok) {
+    agendaTime!.textContent = "··:··";
+    setAgendaTitle(["SIN", "ACCESO"]);
+    agendaFoot!.textContent = "ERROR OUTLOOK";
+    return;
+  }
+
+  const next = status.next;
+
+  if (!next) {
+    agendaTime!.textContent = "··:··";
+    setAgendaTitle(["SIN", "CITAS"]);
+    agendaFoot!.textContent = `MAIL ${status.unread}`;
+    return;
+  }
+
+  const isToday = dayStamp(next.start) === dayStamp(Date.now() / 1000);
+  const day = isToday
+    ? `HOY ${status.today}`
+    : status.tomorrow > 0
+      ? `MAÑ ${status.tomorrow}`
+      : new Date(next.start * 1000).toLocaleDateString("es-GT", {
+          day: "2-digit",
+          month: "2-digit",
+        });
+
+  agendaTime!.textContent = formatClock(next.start);
+  setAgendaTitle(pagerWrap(next.subject).slice(0, 2));
+  agendaFoot!.textContent = `${day} · MAIL ${status.unread}`;
+}
+
+function showNotice(text: string, duration: number): void {
+  showNoticeLines([text], duration);
+}
+
+let noticeLines: string[] = [];
+let noticeIndex = 0;
+let noticeTicker = 0;
+
+function showNoticeLines(lines: string[], duration: number, label = "AVISO"): void {
+  noticeLabel = label;
+  noticeLines = lines.map((line) => line.trim()).filter(Boolean);
+  noticeIndex = 0;
+  notice = noticeLines[0] ?? "";
+  window.clearTimeout(noticeTimeout);
+  window.clearInterval(noticeTicker);
+
+  if (noticeLines.length > 1) {
+    noticeTicker = window.setInterval(() => {
+      noticeIndex = (noticeIndex + 1) % noticeLines.length;
+      notice = noticeLines[noticeIndex];
+    }, 2500);
+  }
+
+  noticeTimeout = window.setTimeout(() => {
+    notice = null;
+    window.clearInterval(noticeTicker);
+  }, duration);
 }
 
 function bitcoinQuote(): BitcoinQuote | null {
@@ -559,7 +672,7 @@ function currentMetric(): {
   criticalAt: number;
 } {
   if (notice) {
-    return { display: `AVISO ${notice}`, value: 0, busyAt: 101, criticalAt: 102 };
+    return { display: `${noticeLabel} ${notice}`, value: 0, busyAt: 101, criticalAt: 102 };
   }
 
   if (metricView === "cpu") {
@@ -640,6 +753,39 @@ function currentMetric(): {
     return { display, value: 0, busyAt: 101, criticalAt: 102 };
   }
 
+  if (metricView === "agenda") {
+    if (!outlook || !outlook.running) {
+      return { display: "OUTLOOK CERRADO", value: 0, busyAt: 101, criticalAt: 102 };
+    }
+
+    if (!outlook.ok) {
+      return { display: "OUTLOOK SIN ACCESO", value: 0, busyAt: 101, criticalAt: 102 };
+    }
+
+    if (!outlook.next) {
+      return {
+        display: `SIN CITAS · MAIL ${outlook.unread}`,
+        value: 0,
+        busyAt: 101,
+        criticalAt: 102,
+      };
+    }
+
+    const nextDay = dayStamp(outlook.next.start) === dayStamp(Date.now() / 1000)
+      ? `HOY ${outlook.today}`
+      : `MAÑ ${outlook.tomorrow}`;
+
+    return {
+      display: clipText(
+        `CITA ${formatClock(outlook.next.start)} ${outlook.next.subject.toUpperCase()} · ${nextDay} · MAIL ${outlook.unread}`,
+        21,
+      ),
+      value: 0,
+      busyAt: 101,
+      criticalAt: 102,
+    };
+  }
+
   return weather
     ? {
         display: `${weather.temperature.toFixed(0)} C ${weatherLabel(weather.code)}`,
@@ -664,7 +810,7 @@ function animateBars(): void {
   const globalTempo = overloaded ? 110 : busy ? 220 : 460;
   const waveTempo = Math.max(60, 440 / (1 + opencodeCpu * 0.15));
   const showOpenCodeWave = metricView === "cpu" && opencodeActive;
-  const staticView = notice !== null || metricView === "clock" || metricView === "bitcoin" || metricView === "face" || metricView === "task" || metricView === "memory" || metricView === "photo" || metricView === "red" || metricView === "copilot" || metricView === "deepseek" || metricView === "opencode" || (metricView === "weather" && weather !== null);
+  const staticView = notice !== null || metricView === "clock" || metricView === "bitcoin" || metricView === "face" || metricView === "task" || metricView === "memory" || metricView === "photo" || metricView === "red" || metricView === "copilot" || metricView === "deepseek" || metricView === "opencode" || metricView === "agenda" || (metricView === "weather" && weather !== null);
   const tempo = staticView ? 1000 : showOpenCodeWave ? waveTempo : globalTempo;
 
   root!.classList.toggle("overloaded", overloaded);
@@ -686,6 +832,9 @@ function animateBars(): void {
   root!.classList.toggle("ds-low", metricView === "deepseek" && !!deepseek && deepseek.ok && deepseek.total > deepseek.alertBelow && deepseek.total <= deepseek.alertBelow * 2);
   root!.classList.toggle("ds-empty", metricView === "deepseek" && !!deepseek && deepseek.ok && (!deepseek.available || deepseek.total <= deepseek.alertBelow));
   root!.classList.toggle("opencode-view", metricView === "opencode");
+  root!.classList.toggle("agenda-view", metricView === "agenda");
+  root!.classList.toggle("agenda-error", metricView === "agenda" && (!outlook || !outlook.running || !outlook.ok));
+  root!.classList.toggle("agenda-empty", metricView === "agenda" && !!outlook && outlook.running && outlook.ok && outlook.next === null);
   root!.classList.toggle("notice-active", notice !== null);
   const quote = bitcoinQuote();
   root!.classList.toggle("btc-alert", metricView === "bitcoin" && !!quote && quote.price <= bitcoinBuyThreshold);
@@ -696,6 +845,7 @@ function animateBars(): void {
   updateDeepSeek();
   updateOpenCode();
   updatePager();
+  updateAgenda();
   root!.style.setProperty("--tempo", `${tempo}ms`);
   metricOutput!.value = metric.display;
   metricOutput!.textContent = metricOutput!.value;
@@ -794,11 +944,19 @@ void listen<string | null>("evento-tarea", (event) => {
 });
 
 void listen<string>("evento-aviso", (event) => {
-  notice = event.payload;
-  window.clearTimeout(noticeTimeout);
-  noticeTimeout = window.setTimeout(() => {
-    notice = null;
-  }, 30_000);
+  showNotice(event.payload, 30_000);
+});
+
+void listen<OutlookStatus>("evento-outlook", (event) => {
+  outlook = event.payload;
+});
+
+void listen<OutlookAviso>("evento-outlook-aviso", (event) => {
+  showNoticeLines(
+    event.payload.text.split("|"),
+    event.payload.kind === "cita" ? 20_000 : 15_000,
+    event.payload.kind === "cita" ? "CITA" : "MAIL",
+  );
 });
 
 async function loadWeather(position: GeolocationPosition): Promise<void> {

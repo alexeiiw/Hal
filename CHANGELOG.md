@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.9.0
+
+- Añade la vista de agenda (`/on agenda`, alias `calendario` y `citas`) con la proxima cita de Outlook, su hora y asunto en dos lineas y el pie `HOY n · MAIL n`.
+- Lee el calendario y la bandeja de Outlook clasico por COM y solo lectura, sin Microsoft Graph ni permisos de administrador, usando un puente de PowerShell persistente que HAL instala en `%APPDATA%\HAL` y vigila.
+- Muestra `SIN CITAS` cuando no quedan citas hoy ni mañana, `SIN ACCESO` si Outlook esta cerrado y `ERROR OUTLOOK` si falla el acceso, sin abrir Outlook en ningun caso.
+- Avisa 15 minutos antes de cada cita en la ventana y por Telegram, una sola vez por cita y con dos dias de historial en `%APPDATA%\HAL\outlook-avisos.json`.
+- Añade el contador de no leidos y una vista previa de correo con remitente y asunto, agrupada, de 8 segundos como maximo cada dos minutos y sin leer cuerpo ni adjuntos.
+- Añade `/agenda`, `/cita`, `/mail`, `/mail aviso on|off`, `/mail preview remitente|asunto|ambos|off` y `/outlook`, y amplia `/status`, `/inventory` y `/help`.
+
 ## 1.8.0
 
 - Sustituye la linea inferior de la vista de tarea por un buscapersonas Motorola Advisor con LCD verde, teclas, D-pad y marca.

@@ -1,5 +1,14 @@
 # Avance de HAL
 
+## 2026-11-18
+
+- [x] Añadida la vista de agenda de Outlook con proxima cita, hora, asunto en dos lineas y pie `HOY n · MAIL n`.
+- [x] Implementado un puente persistente de PowerShell sobre COM, solo lectura, con deteccion de `outlook.exe`, reinicio automatico y estados `SIN CITAS`, `SIN ACCESO` y `ERROR OUTLOOK`.
+- [x] Añadido el aviso de cita 15 minutos antes, idempotente por `GlobalAppointmentID` y hora, con historial de dos dias en `outlook-avisos.json`.
+- [x] Añadido el contador de no leidos y la vista previa de correo (remitente y asunto) agrupada, sin leer cuerpo ni adjuntos.
+- [x] Añadidos `/agenda`, `/cita`, `/mail`, `/mail aviso`, `/mail preview` y `/outlook`, y ampliados `/status`, `/inventory` y `/help`.
+- [x] Actualizada la version local a `1.9.0`, README, changelog, politica de seguridad y nombres de instaladores.
+
 ## 2026-10-28
 
 - [x] Sustituida la linea inferior de la vista de tarea por un buscapersonas Motorola Advisor con LCD verde.

@@ -14,6 +14,8 @@ use serde::{Deserialize, Serialize};
 use sysinfo::{Networks, ProcessesToUpdate, System};
 use tauri::{Emitter, Manager, PhysicalPosition, Position};
 
+mod outlook;
+
 #[derive(Default, Deserialize, Serialize)]
 #[serde(default)]
 struct TelegramConfig {
@@ -24,6 +26,9 @@ struct TelegramConfig {
     task: Option<String>,
     disabled_views: Vec<String>,
     bitcoin_alert_below: Option<f64>,
+    outlook_alert_minutes: Option<u32>,
+    mail_alert: Option<bool>,
+    mail_preview: Option<String>,
 }
 
 #[derive(Clone, Default)]
@@ -546,6 +551,7 @@ fn parse_bitcoin_alert_price(value: &str) -> Result<f64, String> {
 fn inventory_status(config: &TelegramConfig) -> String {
     let views = [
         "cpu", "ram", "red", "clima", "reloj", "btc", "cara", "tarea", "foto", "cop", "ds", "oc",
+        "agenda",
     ];
     let active = views
         .iter()
@@ -562,6 +568,7 @@ fn inventory_status(config: &TelegramConfig) -> String {
                 "cop" => "copilot",
                 "ds" => "deepseek",
                 "oc" => "opencode",
+                "agenda" => "agenda",
                 view => view,
             };
             !config
@@ -636,6 +643,8 @@ async fn handle_telegram_command(
     copilot_status: &Arc<Mutex<CopilotStatus>>,
     deepseek_status: &Arc<Mutex<DeepSeekStatus>>,
     opencode_status: &Arc<Mutex<OpenCodeStatus>>,
+    outlook_status: &Arc<Mutex<outlook::OutlookStatus>>,
+    outlook_mail: &Arc<Mutex<Vec<outlook::MailPreview>>>,
     message: TelegramMessage,
 ) {
     let chat_id = message.chat.id;
@@ -687,13 +696,55 @@ async fn handle_telegram_command(
     }
 
     let response = if text == "/help" || text == "/start" {
-        "Comandos:\n/help\n/pair\n/status\n/inventory\n/mode normal|developer|focus|relax|happy\n/on nombre (cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop, ds, oc)\n/off nombre\n/off hal\n/btc alert precio | /btc alert | /btc off\n/phrase texto | /phrase clear\n/task texto | /task clear\n/aviso 10 o 08:00\n/aviso list | /aviso cancel"
+        "Comandos:\n/help\n/pair\n/status\n/inventory\n/mode normal|developer|focus|relax|happy\n/on nombre (cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop, ds, oc, agenda)\n/off nombre\n/off hal\n/agenda\n/cita 15 | /cita 0\n/mail\n/mail aviso on|off\n/mail preview remitente|asunto|ambos|off\n/outlook\n/btc alert precio | /btc alert | /btc off\n/phrase texto | /phrase clear\n/task texto | /task clear\n/aviso 10 o 08:00\n/aviso list | /aviso cancel"
             .to_string()
     } else if text == "/inventory" {
         format!(
             "{}\nModos: normal, developer, focus, relax, happy\nUsa /on nombre o /off nombre.",
             inventory_status(config)
         )
+    } else if text == "/outlook" {
+        outlook::describe(&outlook::snapshot(outlook_status))
+    } else if text == "/agenda" || text.starts_with("/agenda ") {
+        outlook::listing(&outlook::snapshot(outlook_status))
+    } else if text == "/cita" {
+        let minutes = outlook::alert_minutes();
+        if minutes == 0 {
+            "Aviso de citas desactivado. Usa /cita 15 para activarlo.".to_string()
+        } else {
+            format!("Aviso de citas: {minutes} minutos antes.")
+        }
+    } else if let Some(value) = text.strip_prefix("/cita ") {
+        match value.trim().parse::<u32>() {
+            Ok(minutes) if minutes <= 120 => {
+                config.outlook_alert_minutes = Some(minutes);
+                if minutes == 0 {
+                    "Aviso de citas desactivado.".to_string()
+                } else {
+                    format!("Aviso de citas: {minutes} minutos antes.")
+                }
+            }
+            _ => "Usa /cita 15, /cita 5 o /cita 0 para apagarlo (maximo 120).".to_string(),
+        }
+    } else if text == "/mail aviso on" {
+        config.mail_alert = Some(true);
+        "Aviso de correo por Telegram activado.".to_string()
+    } else if text == "/mail aviso off" {
+        config.mail_alert = Some(false);
+        "Aviso de correo por Telegram desactivado.".to_string()
+    } else if let Some(mode) = text.strip_prefix("/mail preview ") {
+        match mode.trim() {
+            "remitente" | "asunto" | "ambos" | "off" => {
+                let mode = mode.trim().to_string();
+                config.mail_preview = Some(mode.clone());
+                format!("Preview de correo: {mode}.")
+            }
+            _ => "Usa /mail preview remitente, asunto, ambos u off.".to_string(),
+        }
+    } else if text == "/mail" {
+        let status = outlook::snapshot(outlook_status);
+        let mail = outlook::mail_snapshot(outlook_mail);
+        outlook::mail_listing(&status, &mail)
     } else if text == "/status" {
         let status = system_status
             .lock()
@@ -788,8 +839,27 @@ async fn handle_telegram_command(
             "Alerta desactivada".to_string()
         };
         let task = config.task.as_deref().unwrap_or("sin tarea");
+        let outlook_snapshot = outlook::snapshot(outlook_status);
+        let outlook_line = if !outlook_snapshot.running {
+            "Outlook: cerrado".to_string()
+        } else if !outlook_snapshot.ok {
+            "Outlook: sin acceso".to_string()
+        } else {
+            match &outlook_snapshot.next {
+                Some(next) => format!(
+                    "Outlook: {} sin leer | {} {}",
+                    outlook_snapshot.unread,
+                    outlook::clock(next.start),
+                    outlook::clip(&next.subject, 24)
+                ),
+                None => format!(
+                    "Outlook: {} sin leer | sin citas",
+                    outlook_snapshot.unread
+                ),
+            }
+        };
         format!(
-            "CPU {:.1}% | RAM {:.1}%\n{} | {}\n{}\n{}\n{}\nModo: {}\nTarea: {}\n{}",
+            "CPU {:.1}% | RAM {:.1}%\n{} | {}\n{}\n{}\n{}\n{}\nModo: {}\nTarea: {}\n{}",
             status.cpu,
             status.memory,
             bitcoin,
@@ -797,6 +867,7 @@ async fn handle_telegram_command(
             copilot_line,
             deepseek_line,
             opencode_line,
+            outlook_line,
             if config.mode.is_empty() {
                 "normal"
             } else {
@@ -922,12 +993,13 @@ fn set_view(
         "cop" | "copilot" => "copilot",
         "ds" | "deepseek" => "deepseek",
         "oc" | "opencode" => "opencode",
+        "agenda" | "calendario" | "citas" => "agenda",
         view => view,
     };
 
     match view {
         "cpu" | "memory" | "weather" | "clock" | "bitcoin" | "face" | "task" | "photo" | "red"
-        | "copilot" | "deepseek" | "opencode" => {
+        | "copilot" | "deepseek" | "opencode" | "agenda" => {
             if enabled {
                 config.disabled_views.retain(|disabled| disabled != view);
             } else if !config
@@ -951,7 +1023,7 @@ fn set_view(
             )
         }
         _ => {
-            "Vista inválida. Usa cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop, ds u oc."
+            "Vista inválida. Usa cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop, ds, oc o agenda."
                 .to_string()
         }
     }
@@ -964,6 +1036,8 @@ async fn run_telegram(
     copilot_status: Arc<Mutex<CopilotStatus>>,
     deepseek_status: Arc<Mutex<DeepSeekStatus>>,
     opencode_status: Arc<Mutex<OpenCodeStatus>>,
+    outlook_status: Arc<Mutex<outlook::OutlookStatus>>,
+    outlook_mail: Arc<Mutex<Vec<outlook::MailPreview>>>,
 ) {
     let path = telegram_config_path();
     let Some(mut config) = load_telegram_config(&path) else {
@@ -975,7 +1049,7 @@ async fn run_telegram(
     }
 
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.8.0")
+        .user_agent("HAL/1.9.0")
         .build()
         .expect("failed to create Telegram client");
 
@@ -1023,6 +1097,8 @@ async fn run_telegram(
                     &copilot_status,
                     &deepseek_status,
                     &opencode_status,
+                    &outlook_status,
+                    &outlook_mail,
                     message,
                 )
                 .await;
@@ -1115,7 +1191,7 @@ async fn fetch_copilot(client: &reqwest::Client, token: &str) -> Result<CopilotS
 
 async fn run_copilot(app: tauri::AppHandle, status: Arc<Mutex<CopilotStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.8.0")
+        .user_agent("HAL/1.9.0")
         .build()
         .expect("failed to create Copilot client");
 
@@ -1197,7 +1273,7 @@ async fn fetch_deepseek(
 
 async fn run_deepseek(app: tauri::AppHandle, status: Arc<Mutex<DeepSeekStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.8.0")
+        .user_agent("HAL/1.9.0")
         .build()
         .expect("failed to create DeepSeek client");
 
@@ -1460,7 +1536,7 @@ async fn fetch_opencode(
 
 async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.8.0")
+        .user_agent("HAL/1.9.0")
         .timeout(Duration::from_secs(3))
         .build()
         .expect("failed to create OpenCode client");
@@ -1496,7 +1572,7 @@ async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeSt
 
 async fn run_bitcoin_alert(app: tauri::AppHandle, bitcoin_status: Arc<Mutex<BitcoinStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.8.0")
+        .user_agent("HAL/1.9.0")
         .build()
         .expect("failed to create Bitcoin client");
     let mut was_below_threshold = false;
@@ -1558,6 +1634,8 @@ fn main() {
             let copilot_status = Arc::new(Mutex::new(CopilotStatus::default()));
             let deepseek_status = Arc::new(Mutex::new(DeepSeekStatus::default()));
             let opencode_status = Arc::new(Mutex::new(OpenCodeStatus::default()));
+            let outlook_status = Arc::new(Mutex::new(outlook::OutlookStatus::default()));
+            let outlook_mail = Arc::new(Mutex::new(Vec::<outlook::MailPreview>::new()));
             let monitor_status = system_status.clone();
             let app_handle = app.handle().clone();
             thread::spawn(move || {
@@ -1640,7 +1718,14 @@ fn main() {
                 copilot_status.clone(),
                 deepseek_status.clone(),
                 opencode_status.clone(),
+                outlook_status.clone(),
+                outlook_mail.clone(),
             ));
+            outlook::start(
+                app.handle().clone(),
+                outlook_status,
+                outlook_mail,
+            );
             run_reminder_watcher(app.handle().clone());
             tauri::async_runtime::spawn(run_bitcoin_alert(app.handle().clone(), bitcoin_status));
             tauri::async_runtime::spawn(run_copilot(app.handle().clone(), copilot_status));
