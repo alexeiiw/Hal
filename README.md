@@ -1,4 +1,4 @@
-# HAL 1.9.1
+# HAL 1.9.2
 
 HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, creditos de GitHub Copilot, saldo de DeepSeek, actividad de OpenCode, la agenda y el correo de Outlook, un buscapersonas con la tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
 
@@ -170,7 +170,9 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/task texto` | Define la tarea prioritaria de hasta 30 caracteres |
 | `/task clear` | Elimina la tarea y su vista del ciclo |
 | `/aviso 10` | Programa un aviso dentro de 10 minutos |
+| `/aviso 10 Llamar cliente` | Igual, con un texto de hasta 30 caracteres en el aviso |
 | `/aviso 08:00` | Programa un aviso para la proxima hora local 08:00 |
+| `/aviso 08:30 Revisar proceso` | Igual, con texto en el aviso |
 | `/aviso list` | Lista los avisos activos |
 | `/aviso cancel` | Cancela todos los avisos |
 | `/agenda` | Muestra las proximas citas de Outlook con hora y asunto |
@@ -207,8 +209,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.9.1_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_1.9.1_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.9.2_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_1.9.2_x64_en-US.msi`
 
 ## Desarrollo
 

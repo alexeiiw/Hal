@@ -588,17 +588,29 @@ fn inventory_status(config: &TelegramConfig) -> String {
 }
 
 fn parse_reminder(value: &str) -> Result<Reminder, String> {
-    if let Ok(minutes) = value.parse::<i64>() {
+    let (time_part, note) = match value.split_once(' ') {
+        Some((time, note)) => (time, note.trim()),
+        None => (value, ""),
+    };
+    let with_note = |base: String| -> String {
+        if note.is_empty() {
+            base
+        } else {
+            format!("{base} {note}").chars().take(30).collect()
+        }
+    };
+
+    if let Ok(minutes) = time_part.parse::<i64>() {
         if !(1..=1_440).contains(&minutes) {
             return Err("El aviso debe estar entre 1 y 1440 minutos.".to_string());
         }
         return Ok(Reminder {
-            label: format!("{minutes} MIN"),
+            label: with_note(format!("{minutes} MIN")),
             due_at: (Utc::now() + ChronoDuration::minutes(minutes)).timestamp(),
         });
     }
 
-    let Some((hour, minute)) = value.split_once(':') else {
+    let Some((hour, minute)) = time_part.split_once(':') else {
         return Err("Usa /aviso 10 o /aviso 08:00.".to_string());
     };
     let (Ok(hour), Ok(minute)) = (hour.parse::<u32>(), minute.parse::<u32>()) else {
@@ -629,7 +641,7 @@ fn parse_reminder(value: &str) -> Result<Reminder, String> {
     }
 
     Ok(Reminder {
-        label: format!("{hour:02}:{minute:02}"),
+        label: with_note(format!("{hour:02}:{minute:02}")),
         due_at: due.timestamp(),
     })
 }
@@ -696,7 +708,7 @@ async fn handle_telegram_command(
     }
 
     let response = if text == "/help" || text == "/start" {
-        "Comandos:\n/help\n/pair\n/status\n/inventory\n/mode normal|developer|focus|relax|happy\n/on nombre (cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop, ds, oc, agenda)\n/off nombre\n/off hal\n/agenda\n/cita 15 | /cita 0\n/mail\n/mail aviso on|off\n/mail preview remitente|asunto|ambos|off\n/outlook\n/btc alert precio | /btc alert | /btc off\n/phrase texto | /phrase clear\n/task texto | /task clear\n/aviso 10 o 08:00\n/aviso list | /aviso cancel"
+        "Comandos:\n/help\n/pair\n/status\n/inventory\n/mode normal|developer|focus|relax|happy\n/on nombre (cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop, ds, oc, agenda)\n/off nombre\n/off hal\n/agenda\n/cita 15 | /cita 0\n/mail\n/mail aviso on|off\n/mail preview remitente|asunto|ambos|off\n/outlook\n/btc alert precio | /btc alert | /btc off\n/phrase texto | /phrase clear\n/task texto | /task clear\n/aviso 10 [texto] o 08:00 [texto]\n/aviso list | /aviso cancel"
             .to_string()
     } else if text == "/inventory" {
         format!(
@@ -927,7 +939,7 @@ async fn handle_telegram_command(
             "Tarea prioritaria actualizada.".to_string()
         }
     } else if text == "/aviso" {
-        "Usa /aviso 10 para minutos o /aviso 08:00 para una hora local.".to_string()
+        "Usa /aviso 10 o /aviso 08:00 con texto opcional despues de la hora o los minutos.".to_string()
     } else if text == "/aviso list" {
         let store = load_reminders(&reminders_path());
         if store.reminders.is_empty() {
@@ -1049,7 +1061,7 @@ async fn run_telegram(
     }
 
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.1")
+        .user_agent("HAL/1.9.2")
         .build()
         .expect("failed to create Telegram client");
 
@@ -1191,7 +1203,7 @@ async fn fetch_copilot(client: &reqwest::Client, token: &str) -> Result<CopilotS
 
 async fn run_copilot(app: tauri::AppHandle, status: Arc<Mutex<CopilotStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.1")
+        .user_agent("HAL/1.9.2")
         .build()
         .expect("failed to create Copilot client");
 
@@ -1273,7 +1285,7 @@ async fn fetch_deepseek(
 
 async fn run_deepseek(app: tauri::AppHandle, status: Arc<Mutex<DeepSeekStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.1")
+        .user_agent("HAL/1.9.2")
         .build()
         .expect("failed to create DeepSeek client");
 
@@ -1536,7 +1548,7 @@ async fn fetch_opencode(
 
 async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.1")
+        .user_agent("HAL/1.9.2")
         .timeout(Duration::from_secs(3))
         .build()
         .expect("failed to create OpenCode client");
@@ -1572,7 +1584,7 @@ async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeSt
 
 async fn run_bitcoin_alert(app: tauri::AppHandle, bitcoin_status: Arc<Mutex<BitcoinStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.1")
+        .user_agent("HAL/1.9.2")
         .build()
         .expect("failed to create Bitcoin client");
     let mut was_below_threshold = false;

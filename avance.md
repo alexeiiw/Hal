@@ -2,6 +2,11 @@
 
 ## 2026-11-18
 
+- [x] Corregido el parser de `/aviso` para aceptar texto despues de la hora o los minutos, y conservarlo en la alerta.
+- [x] Actualizada la version local a `1.9.2`, ayuda, README y changelog.
+
+## 2026-11-18
+
 - [x] Añadida la ciudad bajo el icono del clima mediante geocodificacion inversa con BigDataCloud, sin guardar las coordenadas.
 - [x] Mantenidos icono, temperatura y condicion cuando el servicio de geocodificacion falla.
 - [x] Actualizada la version local a `1.9.1`, README, changelog y politica de seguridad.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.2
+
+- Corrige `/aviso 08:30 texto`, que devolvia "La hora debe tener formato HH:MM" al añadir texto.
+- Los avisos con hora o minutos ahora conservan el texto en la alerta, recortado a 30 caracteres (`/aviso 10 Llamar`).
+- Actualiza `/help` y la tabla de comandos del README con el texto opcional.
+
 ## 1.9.1
 
 - Muestra el nombre de la ciudad bajo el icono del clima, obtenido por geocodificacion inversa de las coordenadas con BigDataCloud.
