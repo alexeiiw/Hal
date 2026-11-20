@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.5
+
+- Añade el comando `/reiniciar` en Telegram: confirma el reinicio, abre una nueva instancia de HAL y cierra la actual.
+- Actualiza `/help` y la tabla de comandos del README.
+
 ## 1.9.4
 
 - Añade la vista `correo` (`/on correo`, alias `ultimo`) con el remitente, el asunto y el estado (leido o no) del ultimo correo recibido en Outlook, mas el contador `MAIL n`.

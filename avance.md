@@ -1,5 +1,10 @@
 # Avance de HAL
 
+## 2026-11-20
+
+- [x] Añadido el comando `/reiniciar` por Telegram para reiniciar HAL de forma remota.
+- [x] Actualizada la version local a `1.9.5`, ayuda, README y changelog.
+
 ## 2026-11-18
 
 - [x] Añadida la vista fija `correo` con remitente, asunto y estado del ultimo correo recibido.

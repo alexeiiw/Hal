@@ -1,4 +1,4 @@
-# HAL 1.9.4
+# HAL 1.9.5
 
 HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, creditos de GitHub Copilot, saldo de DeepSeek, actividad de OpenCode, la agenda y el correo de Outlook, un buscapersonas con la tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
 
@@ -163,6 +163,7 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/on nombre` | Activa `cpu`, `ram`, `red`, `clima`, `reloj`, `btc`, `cara`, `tarea`, `foto`, `cop`, `ds`, `oc`, `agenda` o `correo` |
 | `/off nombre` | Desactiva una vista del ciclo |
 | `/off hal` | Cierra HAL de forma remota |
+| `/reiniciar` | Reinicia HAL de forma remota (confirma por Telegram y vuelve a abrirlo) |
 | `/btc alert 80000` | Fija el aviso remoto de BTC cuando el precio sea igual o menor a $80,000 USD |
 | `/btc alert` | Muestra el umbral remoto de BTC actual |
 | `/btc off` | Desactiva el aviso remoto de BTC |
@@ -210,8 +211,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.9.4_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_1.9.4_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.9.5_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_1.9.5_x64_en-US.msi`
 
 ## Desarrollo
 
