@@ -13,6 +13,7 @@ const clockHour = document.querySelector<SVGPathElement>("#clock-hour");
 const clockMinute = document.querySelector<SVGPathElement>("#clock-minute");
 const gaugeArc = document.querySelector<SVGCircleElement>("#gauge-arc");
 const gaugeValue = document.querySelector<HTMLElement>("#gauge-value");
+const ramApps = document.querySelector<HTMLElement>("#ram-apps");
 const photoImg = document.querySelector<HTMLImageElement>("#photo-img");
 const netLine = document.querySelector<SVGPathElement>("#net-line");
 const netUpLine = document.querySelector<SVGPathElement>("#net-up-line");
@@ -108,7 +109,7 @@ const halSettingsKey = "hal-settings";
 const halClockResetKey = "hal-clock-once";
 const allViews: MetricView[] = ["cpu", "memory", "red", "weather", "clock", "agenda", "mail", "bitcoin", "face", "task", "photo", "copilot", "deepseek", "opencode"];
 
-if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !weatherCity || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !photoImg || !netLine || !netUpLine || !netArea || !netDownEl || !netUpEl || !copArc || !copUsed || !copTotal || !dsArc || !dsBalance || !ocState || !ocCount || !pagerEl || !pagerTime || !pagerDate || !agendaTime || !agendaFoot || !mailSender || !mailSubject || !mailState || agendaTitle.length !== 2 || pagerLines.length !== 3 || bars.length !== 5) {
+if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !weatherCity || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !ramApps || !photoImg || !netLine || !netUpLine || !netArea || !netDownEl || !netUpEl || !copArc || !copUsed || !copTotal || !dsArc || !dsBalance || !ocState || !ocCount || !pagerEl || !pagerTime || !pagerDate || !agendaTime || !agendaFoot || !mailSender || !mailSubject || !mailState || agendaTitle.length !== 2 || pagerLines.length !== 3 || bars.length !== 5) {
   throw new Error("La interfaz HAL no se pudo inicializar.");
 }
 
@@ -917,6 +918,22 @@ function animateBars(): void {
 
   window.setTimeout(animateBars, tempo);
 }
+
+type AppMemory = { name: string; mb: number };
+
+function formatMb(mb: number): string {
+  return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb} MB`;
+}
+
+void listen<AppMemory[]>("evento-apps-memoria", (event) => {
+  ramApps!.replaceChildren(
+    ...event.payload.slice(0, 3).map((app) => {
+      const line = document.createElement("div");
+      line.textContent = `${app.name.toUpperCase().slice(0, 12)} ${formatMb(app.mb)}`;
+      return line;
+    }),
+  );
+});
 
 void listen<number>("evento-cpu", (event) => {
   cpu = Math.max(0, Math.min(100, event.payload));

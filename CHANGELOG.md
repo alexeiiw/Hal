@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.6
+
+- Añade un pie en la vista de RAM con las 3 apps que mas memoria usan, agrupadas por proceso y actualizadas cada 10 segundos. El anillo se reduce para dejar espacio.
+- Añade `/memoria` en Telegram: RAM usada y top 5 de apps en texto.
+- Actualiza `/help` y la tabla de comandos del README.
+- Las cifras son el working set de cada proceso; apps con muchos procesos (navegadores) pueden sumar mas de lo que muestra el total del sistema, porque algunas paginas se comparten.
+
 ## 1.9.5
 
 - Añade el comando `/reiniciar` en Telegram: confirma el reinicio, abre una nueva instancia de HAL y cierra la actual.

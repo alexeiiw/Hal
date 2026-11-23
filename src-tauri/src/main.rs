@@ -35,10 +35,73 @@ struct TelegramConfig {
     mail_preview: Option<String>,
 }
 
+#[derive(Clone, Default, Serialize)]
+struct AppMemory {
+    name: String,
+    mb: u64,
+}
+
 #[derive(Clone, Default)]
 struct SystemStatus {
     cpu: f32,
     memory: f32,
+    apps: Vec<AppMemory>,
+    used_mb: u64,
+    total_mb: u64,
+}
+
+fn top_apps(system: &System) -> Vec<AppMemory> {
+    let mut totals = std::collections::BTreeMap::<String, u64>::new();
+    for process in system.processes().values() {
+        let raw = process.name().to_string_lossy().into_owned();
+        let name = raw
+            .strip_suffix(".exe")
+            .or_else(|| raw.strip_suffix(".EXE"))
+            .unwrap_or(raw.as_str())
+            .to_string();
+        *totals.entry(name).or_insert(0) += process.memory();
+    }
+    let mut apps = totals
+        .into_iter()
+        .map(|(name, bytes)| AppMemory {
+            name,
+            mb: bytes / 1_048_576,
+        })
+        .filter(|app| app.mb > 0)
+        .collect::<Vec<_>>();
+    apps.sort_by(|a, b| b.mb.cmp(&a.mb));
+    apps.truncate(5);
+    apps
+}
+
+fn format_mb(mb: u64) -> String {
+    if mb >= 1024 {
+        format!("{:.1} GB", mb as f64 / 1024.0)
+    } else {
+        format!("{mb} MB")
+    }
+}
+
+fn memory_report(status: &Arc<Mutex<SystemStatus>>) -> String {
+    let Ok(status) = status.lock() else {
+        return "Memoria no disponible.".to_string();
+    };
+    if status.apps.is_empty() {
+        return "Memoria: sin datos todavia, espera unos segundos.".to_string();
+    }
+    let mut lines = vec![format!(
+        "RAM {} de {} ({:.0}%)",
+        format_mb(status.used_mb),
+        format_mb(status.total_mb),
+        status.memory
+    )];
+    lines.extend(
+        status
+            .apps
+            .iter()
+            .map(|app| format!("{} {}", app.name, format_mb(app.mb))),
+    );
+    lines.join("\n")
 }
 
 #[derive(Clone, Default)]
@@ -420,7 +483,7 @@ fn is_image(path: &std::path::Path) -> bool {
 
 #[tauri::command]
 async fn weather_city(latitude: f64, longitude: f64) -> String {
-    let Ok(client) = reqwest::Client::builder().user_agent("HAL/1.9.5").build() else {
+    let Ok(client) = reqwest::Client::builder().user_agent("HAL/1.9.6").build() else {
         return String::new();
     };
     let url = format!(
@@ -758,7 +821,7 @@ async fn handle_telegram_command(
     }
 
     let response = if text == "/help" || text == "/start" {
-        "Comandos:\n/help\n/pair\n/status\n/inventory\n/mode normal|developer|focus|relax|happy\n/on nombre (cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop, ds, oc, agenda, correo)\n/off nombre\n/off hal\n/reiniciar\n/agenda\n/cita 15 | /cita 0\n/mail\n/mail aviso on|off\n/mail preview remitente|asunto|ambos|off\n/outlook\n/btc alert precio | /btc alert | /btc off\n/phrase texto | /phrase clear\n/task texto | /task clear\n/aviso 10 [texto] o 08:00 [texto]\n/aviso list | /aviso cancel"
+        "Comandos:\n/help\n/pair\n/status\n/inventory\n/mode normal|developer|focus|relax|happy\n/on nombre (cpu, ram, red, clima, reloj, btc, cara, tarea, foto, cop, ds, oc, agenda, correo)\n/off nombre\n/off hal\n/reiniciar\n/agenda\n/cita 15 | /cita 0\n/mail\n/mail aviso on|off\n/mail preview remitente|asunto|ambos|off\n/outlook\n/memoria\n/btc alert precio | /btc alert | /btc off\n/phrase texto | /phrase clear\n/task texto | /task clear\n/aviso 10 [texto] o 08:00 [texto]\n/aviso list | /aviso cancel"
             .to_string()
     } else if text == "/inventory" {
         format!(
@@ -807,6 +870,8 @@ async fn handle_telegram_command(
         let status = outlook::snapshot(outlook_status);
         let mail = outlook::mail_snapshot(outlook_mail);
         outlook::mail_listing(&status, &mail)
+    } else if text == "/memoria" {
+        memory_report(system_status)
     } else if text == "/status" {
         let status = system_status
             .lock()
@@ -1112,7 +1177,7 @@ async fn run_telegram(
     }
 
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.5")
+        .user_agent("HAL/1.9.6")
         .build()
         .expect("failed to create Telegram client");
 
@@ -1254,7 +1319,7 @@ async fn fetch_copilot(client: &reqwest::Client, token: &str) -> Result<CopilotS
 
 async fn run_copilot(app: tauri::AppHandle, status: Arc<Mutex<CopilotStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.5")
+        .user_agent("HAL/1.9.6")
         .build()
         .expect("failed to create Copilot client");
 
@@ -1336,7 +1401,7 @@ async fn fetch_deepseek(
 
 async fn run_deepseek(app: tauri::AppHandle, status: Arc<Mutex<DeepSeekStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.5")
+        .user_agent("HAL/1.9.6")
         .build()
         .expect("failed to create DeepSeek client");
 
@@ -1599,7 +1664,7 @@ async fn fetch_opencode(
 
 async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.5")
+        .user_agent("HAL/1.9.6")
         .timeout(Duration::from_secs(3))
         .build()
         .expect("failed to create OpenCode client");
@@ -1635,7 +1700,7 @@ async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeSt
 
 async fn run_bitcoin_alert(app: tauri::AppHandle, bitcoin_status: Arc<Mutex<BitcoinStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.5")
+        .user_agent("HAL/1.9.6")
         .build()
         .expect("failed to create Bitcoin client");
     let mut was_below_threshold = false;
@@ -1705,9 +1770,11 @@ fn main() {
                 let mut system = System::new_all();
                 system.refresh_cpu_all();
                 let mut networks = Networks::new_with_refreshed_list();
+                let mut tick: u32 = 0;
 
                 loop {
                     thread::sleep(Duration::from_secs(1));
+                    tick = tick.wrapping_add(1);
                     system.refresh_cpu_all();
                     system.refresh_memory();
                     system.refresh_processes(ProcessesToUpdate::All, true);
@@ -1739,6 +1806,18 @@ fn main() {
 
                     if app_handle.emit("evento-memoria", memory).is_err() {
                         break;
+                    }
+
+                    if tick % 10 == 0 {
+                        let apps = top_apps(&system);
+                        if let Ok(mut status) = monitor_status.lock() {
+                            status.apps = apps.clone();
+                            status.used_mb = system.used_memory() / 1_048_576;
+                            status.total_mb = system.total_memory() / 1_048_576;
+                        }
+                        if app_handle.emit("evento-apps-memoria", apps).is_err() {
+                            break;
+                        }
                     }
 
                     if app_handle.emit("evento-opencode", opencode_active).is_err() {

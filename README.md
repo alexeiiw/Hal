@@ -1,4 +1,4 @@
-# HAL 1.9.5
+# HAL 1.9.6
 
 HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, creditos de GitHub Copilot, saldo de DeepSeek, actividad de OpenCode, la agenda y el correo de Outlook, un buscapersonas con la tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
 
@@ -9,7 +9,7 @@ HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, re
 - Se coloca abajo a la derecha del area util del monitor.
 - Se muestra como un HUD sin borde, fondo ni panel de cristal para dar prioridad a los iconos.
 - Alterna CPU global, RAM principal, red, clima, reloj analogico, agenda de Outlook, Bitcoin, Copilot, DeepSeek, OpenCode, mascota HAL y foto cada cuatro segundos (seis en OpenCode); añade tarea prioritaria si esta definida.
-- Muestra la RAM como un anillo de progreso con el porcentaje en el centro.
+- Muestra la RAM como un anillo de progreso con el porcentaje en el centro, y un pie con las 3 apps que mas memoria usan (agrupadas por nombre de proceso, por ejemplo `BRAVE 2.1 GB`). Cada 10 segundos.
 - Detecta la ejecucion de `OpenCode.exe` y, en la vista de CPU, sustituye el ecualizador por una onda sinusoidal SVG sin cambiar la metrica global.
 - Consulta la temperatura y condicion meteorologica al iniciar y cada 30 minutos mediante Open-Meteo.
 - Traduce las coordenadas a un nombre de ciudad con BigDataCloud para mostrarlo bajo el icono del clima. La consulta sale desde el backend de HAL, no desde la ventana.
@@ -185,6 +185,7 @@ El archivo esta fuera del proyecto y no se publica en Git. Despues, envia `/pair
 | `/mail aviso off` | Desactiva el aviso de correo por Telegram |
 | `/mail preview asunto` | Cambia la vista previa de correo a solo asunto (`remitente`, `ambos` u `off`) |
 | `/outlook` | Muestra el estado de la conexion con Outlook |
+| `/memoria` | Muestra la RAM usada y el top 5 de apps por memoria en texto |
 | `/status` | Informa CPU, RAM, BTC y su alerta remota, Copilot, DeepSeek, OpenCode (estado, herramienta, tokens y coste), Outlook (sin leer y proxima cita), modo, tarea y vistas activas |
 
 Los modos, las vistas activas, la frase, la tarea, los avisos y el umbral remoto de BTC se guardan localmente en HAL y se conservan al reiniciar. Al cumplirse un aviso, HAL muestra el ojo rojo de HAL con pulso y parpadeo durante 30 segundos y Telegram recibe una confirmacion. `/status` informa CPU, RAM, BTC y su alerta, Copilot, DeepSeek, OpenCode, modo, tarea y vistas activas. Telegram solo se consulta para recibir comandos; si no hay token o red, HAL sigue funcionando normalmente. La vista Copilot se controla igual con `/on cop` y `/off cop`, su token se guarda aparte en `copilot.json`; DeepSeek usa `/on ds` y `deepseek.json`; OpenCode usa `/on oc` y `opencode.json`.
@@ -211,8 +212,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.9.5_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_1.9.5_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.9.6_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_1.9.6_x64_en-US.msi`
 
 ## Desarrollo
 

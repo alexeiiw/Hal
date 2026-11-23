@@ -1,5 +1,11 @@
 # Avance de HAL
 
+## 2026-11-23
+
+- [x] Añadido el pie de RAM con las 3 apps que mas memoria usan (agrupadas por proceso, cada 10 s).
+- [x] Añadido `/memoria` en Telegram con la RAM usada y el top 5 de apps.
+- [x] Actualizada la version local a `1.9.6`, README, ayuda, changelog y politica de seguridad.
+
 ## 2026-11-20
 
 - [x] Añadido el comando `/reiniciar` por Telegram para reiniciar HAL de forma remota.

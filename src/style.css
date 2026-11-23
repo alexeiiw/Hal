@@ -367,6 +367,23 @@ output {
   text-shadow: 0 0 8px var(--glow);
 }
 
+.w-apps {
+  grid-area: 1 / 1;
+  place-self: end center;
+  display: grid;
+  width: 128px;
+  opacity: 0;
+  font-family: "Silkscreen", Consolas, monospace;
+  font-size: 8px;
+  line-height: 10px;
+  color: var(--text-color);
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity 140ms ease;
+}
+
 .w-copilot {
   place-self: center;
   display: grid;
@@ -1148,6 +1165,38 @@ output {
 
 #hal.memory-view .w-gauge {
   opacity: 1;
+  place-self: start center;
+  width: 58px;
+  height: 58px;
+  margin-top: 4px;
+}
+
+#hal.memory-view .w-apps {
+  opacity: 1;
+}
+
+#hal.memory-view {
+  grid-template-rows: 106px 0;
+}
+
+#hal.memory-view .visualizer {
+  height: 106px;
+}
+
+#hal.memory-view:not(.notice-active) output {
+  display: none;
+}
+
+#hal.memory-view.notice-active {
+  grid-template-rows: 88px 18px;
+}
+
+#hal.memory-view.notice-active .visualizer {
+  height: 88px;
+}
+
+#hal.memory-view.notice-active .w-gauge {
+  margin-top: 0;
 }
 
 #hal.copilot-view .equalizer {
@@ -1234,6 +1283,7 @@ output {
 #hal.notice-active .w-pager,
 #hal.notice-active .w-agenda,
 #hal.notice-active .w-mail,
+#hal.notice-active .w-apps,
 #hal.notice-active .w-photo {
   opacity: 0;
 }
