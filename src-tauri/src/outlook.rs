@@ -268,7 +268,7 @@ fn telegram_push(text: String) {
     let Some(chat_id) = config.chat_id else { return };
     let token = config.token;
     tauri::async_runtime::spawn(async move {
-        let Ok(client) = reqwest::Client::builder().user_agent("HAL/1.9.6").build() else {
+        let Ok(client) = reqwest::Client::builder().user_agent("HAL/1.9.7").build() else {
             return;
         };
         telegram_send(&client, &token, chat_id, &text).await;

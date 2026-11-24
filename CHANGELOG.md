@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.7
+
+- Reproduce el beeper (`src/assets/beeper.wav`) al mostrarse cualquier aviso: citas, correo y recordatorios de `/aviso`.
+- Permite el autoplay de audio en WebView2 (`additionalBrowserArgs` en `tauri.conf.json`).
+
 ## 1.9.6
 
 - Añade un pie en la vista de RAM con las 3 apps que mas memoria usan, agrupadas por proceso y actualizadas cada 10 segundos. El anillo se reduce para dejar espacio.

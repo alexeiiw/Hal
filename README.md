@@ -1,10 +1,11 @@
-# HAL 1.9.6
+# HAL 1.9.7
 
 HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, creditos de GitHub Copilot, saldo de DeepSeek, actividad de OpenCode, la agenda y el correo de Outlook, un buscapersonas con la tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
 
 ## Comportamiento
 
 - Se ejecuta manualmente cuando se necesita; no se inicia con Windows.
+- Reproduce un beeper al mostrarse un aviso: citas de Outlook, correo nuevo o `/aviso` de Telegram.
 - Permanece sobre otras ventanas, pero los clics atraviesan HAL hacia la aplicacion de debajo.
 - Se coloca abajo a la derecha del area util del monitor.
 - Se muestra como un HUD sin borde, fondo ni panel de cristal para dar prioridad a los iconos.
@@ -212,8 +213,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.9.6_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_1.9.6_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.9.7_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_1.9.7_x64_en-US.msi`
 
 ## Desarrollo
 
@@ -245,3 +246,5 @@ HAL mide la CPU global deliberadamente. La deteccion de OpenCode solo modifica e
 MIT. Consulta [LICENSE](LICENSE).
 
 La tipografia Silkscreen incluida en `src/assets` se distribuye bajo la SIL Open Font License 1.1 (`src/assets/Silkscreen-OFL.txt`) y no queda cubierta por esta licencia.
+
+El sonido `src/assets/beeper.wav` (origen: BigSoundBank, «ALRMElec_Digital pager», ID 3513) no es de esta licencia; revisa sus condiciones de uso en su pagina de origen antes de redistribuir HAL.

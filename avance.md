@@ -1,5 +1,10 @@
 # Avance de HAL
 
+## 2026-11-24
+
+- [x] Añadido el sonido del beeper para los avisos (`src/assets/beeper.wav`).
+- [x] Actualizada la version local a `1.9.7`, README, changelog y avance.
+
 ## 2026-11-23
 
 - [x] Añadido el pie de RAM con las 3 apps que mas memoria usan (agrupadas por proceso, cada 10 s).

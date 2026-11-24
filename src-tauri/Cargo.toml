@@ -1,6 +1,6 @@
 [package]
 name = "hal"
-version = "1.9.6"
+version = "1.9.7"
 description = "Indicador flotante de recursos y clima"
 authors = ["HAL"]
 license = "MIT"

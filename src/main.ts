@@ -1,6 +1,14 @@
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import "./style.css";
+import beeperUrl from "./assets/beeper.wav";
+
+const beeper = new Audio(beeperUrl);
+
+function playBeeper(): void {
+  beeper.currentTime = 0;
+  void beeper.play().catch(() => undefined);
+}
 
 const bars = Array.from(document.querySelectorAll<HTMLElement>(".equalizer i"));
 const metricOutput = document.querySelector<HTMLOutputElement>("#metric");
@@ -1004,6 +1012,7 @@ void listen<string | null>("evento-tarea", (event) => {
 });
 
 void listen<string>("evento-aviso", (event) => {
+  playBeeper();
   showNotice(event.payload, 30_000);
 });
 
@@ -1012,6 +1021,7 @@ void listen<OutlookStatus>("evento-outlook", (event) => {
 });
 
 void listen<OutlookAviso>("evento-outlook-aviso", (event) => {
+  playBeeper();
   showNoticeLines(
     event.payload.text.split("|"),
     event.payload.kind === "cita" ? 20_000 : 15_000,
