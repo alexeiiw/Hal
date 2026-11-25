@@ -71,6 +71,40 @@ HAL lee la configuracion de `%APPDATA%\HAL\copilot.json`:
 
 Cuando el token vence o se revoca, la vista muestra `TOKEN VENCIDO`. Genera uno nuevo y reemplaza el campo `token`; HAL relee el archivo en cada ciclo, asi que no hace falta reiniciar. La consulta usa el endpoint interno `GET https://api.github.com/copilot_internal/user`, el mismo que usan los clientes de Copilot: no esta documentado oficialmente, puede cambiar sin aviso y solo devuelve datos del plan personal (no creditos facturados a una organizacion o empresa). Si falla, la vista muestra `NO DISP.` y el resto de HAL sigue funcionando. El token se envia solo en la cabecera `Authorization` y nunca se registra en logs.
 
+## Tokens y permisos
+
+HAL usa dos tokens distintos, y cada uno necesita solo sus permisos. Ninguno va en el repositorio ni en el codigo.
+
+| Token | Uso | Donde se guarda | Tipo | Permisos |
+| --- | --- | --- | --- | --- |
+| Copilot de HAL | Creditos y facturacion de Copilot | `%APPDATA%\HAL\copilot.json`, campo `token` | Classic (`ghp_...`) | `user` |
+| Git push | Subir cambios al repositorio | Administrador de credenciales de Windows | Fine-grained | Contents: Read and write, sobre `alexeiiw/Hal` |
+| DeepSeek | Saldo de DeepSeek | `%APPDATA%\HAL\deepseek.json` | Clave de API | Propia de DeepSeek |
+
+**Token de Copilot (classic):**
+1. Abre `https://github.com/settings/tokens/new`.
+2. Pon un nombre (por ejemplo `HAL billing`) y una expiracion corta.
+3. Marca solo `user`. No marques nada mas.
+4. Genera el token, copialo y pegalo en `copilot.json`.
+
+**Token de Git push (fine-grained):**
+1. Abre `https://github.com/settings/personal-access-tokens/new`.
+2. En **Repository access**, elige **Only select repositories** y selecciona `alexeiiw/Hal`.
+3. En **Repository permissions**, pon **Contents** en **Read and write**. Metadata se activa sola como solo lectura.
+4. No marques permisos de cuenta ni de otros recursos.
+5. Genera el token y guardalo en el Administrador de credenciales al hacer `git push`. No lo pegues en ningun archivo del proyecto.
+
+**Probar el token de Copilot sin HAL (PowerShell):** cambia `TU_TOKEN` por el token y ejecuta:
+
+```powershell
+$h = @{ Authorization = "Bearer TU_TOKEN"; Accept = "application/vnd.github+json"; "X-GitHub-Api-Version" = "2026-03-10"; "User-Agent" = "HAL" }
+Invoke-WebRequest -UseBasicParsing -Uri "https://api.github.com/users/TU_USUARIO/settings/billing/ai_credit/usage?product=copilot" -Headers $h | Select-Object -ExpandProperty Content
+```
+
+Si devuelve JSON con `usageItems`, el token funciona para la facturacion. Si devuelve 404, falta el permiso `user`.
+
+**Seguridad:** nunca compartas un token en chats, capturas ni repositorios. Si se expone, revocalo en GitHub y crea uno nuevo. Revisa cada cierto tiempo los tokens activos en `https://github.com/settings/tokens` y `https://github.com/settings/personal-access-tokens`.
+
 ## DeepSeek
 
 La vista DeepSeek (`/on ds`, tambien `deepseek`) muestra el saldo disponible de la cuenta de platform.deepseek.com como `$1.78`, con un anillo que representa la distancia hasta el umbral de aviso. El anillo y la lectura usan el color del modo activo; al acercarse al umbral pasan a amarillo y, por debajo de el o si la cuenta no puede operar, a rojo. Lo que se muestra es `total_balance` (saldo de regalo mas saldo recargado), no el saldo de regalo por separado. Los datos se consultan al iniciar y cada 30 minutos.
