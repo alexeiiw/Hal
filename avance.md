@@ -1,5 +1,10 @@
 # Avance de HAL
 
+## 2026-11-25
+
+- [x] Añadido el pie de facturacion de Copilot (`BRUTO`, `DESC`, `NETO`) con el endpoint de uso de creditos de IA.
+- [x] Actualizada la version local a `1.9.8`, README, changelog, avance y seguridad.
+
 ## 2026-11-24
 
 - [x] Añadido el sonido del beeper para los avisos (`src/assets/beeper.wav`).

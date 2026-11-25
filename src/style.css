@@ -383,6 +383,38 @@ output {
   overflow: hidden;
   transition: opacity 140ms ease;
 }
+.w-cop-billing {
+  grid-area: 1 / 1;
+  place-self: end center;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  width: 128px;
+  opacity: 0;
+  text-align: center;
+  color: var(--text-color);
+  transition: opacity 140ms ease;
+}
+
+.w-cop-billing span {
+  display: grid;
+  justify-items: center;
+}
+
+.w-cop-billing small {
+  font-family: "Silkscreen", Consolas, monospace;
+  font-size: 7px;
+  line-height: 9px;
+  color: var(--bar-color);
+}
+
+.w-cop-billing b {
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 10px;
+  line-height: 12px;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 6px var(--glow);
+}
+
 
 .w-copilot {
   place-self: center;
@@ -1205,6 +1237,42 @@ output {
 
 #hal.copilot-view .w-copilot {
   opacity: 1;
+  place-self: start center;
+  width: 62px;
+  height: 62px;
+  margin-top: 4px;
+}
+
+#hal.copilot-view .w-cop-billing {
+  opacity: 1;
+}
+
+#hal.copilot-view {
+  grid-template-rows: 106px 0;
+}
+
+#hal.copilot-view .visualizer {
+  height: 106px;
+}
+
+#hal.copilot-view:not(.notice-active) output {
+  display: none;
+}
+
+#hal.copilot-view.notice-active {
+  grid-template-rows: 88px 18px;
+}
+
+#hal.copilot-view.notice-active .visualizer {
+  height: 88px;
+}
+
+#hal.copilot-view.notice-active .w-copilot {
+  margin-top: 0;
+}
+
+#hal.notice-active .w-cop-billing {
+  opacity: 0;
 }
 
 #hal.deepseek-view .equalizer {

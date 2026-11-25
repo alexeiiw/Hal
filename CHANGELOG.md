@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.8
+
+- Muestra bajo el anillo de Copilot la facturacion del mes en curso: `BRUTO`, `DESC` y `NETO`, leidos de `GET /users/{usuario}/settings/billing/ai_credit/usage`.
+- El anillo se reduce en la vista Copilot para dejar espacio al pie.
+- Requiere que el token de `copilot.json` tenga el permiso `user`; con `read:user` solo se ven los creditos.
+
 ## 1.9.7
 
 - Reproduce el beeper (`src/assets/beeper.wav`) al mostrarse cualquier aviso: citas, correo y recordatorios de `/aviso`.

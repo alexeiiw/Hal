@@ -1,4 +1,4 @@
-# HAL 1.9.7
+# HAL 1.9.8
 
 HAL es un indicador de escritorio minimalista para Windows. Muestra CPU, RAM, red (ancho de banda), clima, hora, Bitcoin, creditos de GitHub Copilot, saldo de DeepSeek, actividad de OpenCode, la agenda y el correo de Outlook, un buscapersonas con la tarea prioritaria, una mascota HAL y un marco de fotos en una ventana flotante, transparente y click-through. Se controla opcionalmente desde Telegram.
 
@@ -51,7 +51,7 @@ La vista de red (`/on red`, tambien `net` o `banda`) muestra el ancho de banda e
 
 ## Copilot
 
-La vista Copilot (`/on cop`, tambien `copilot`) muestra los creditos de GitHub AI del plan personal como `usados / total` (por ejemplo `1519 / 1500`), con un anillo que se llena segun el consumo. El anillo y la lectura usan el color del modo activo (normal verde, developer cian, focus azul, relax violeta, happy amarillo); al 70 % usado pasan a azul y al 90 % a rojo, y si los creditos se agotan o GitHub deja de otorgar cuota, la vista queda en rojo. Los datos se consultan al iniciar y cada 30 minutos.
+La vista Copilot (`/on cop`, tambien `copilot`) muestra los creditos de GitHub AI del plan personal como `usados / total` (por ejemplo `1519 / 1500`), con un anillo que se llena segun el consumo. El anillo y la lectura usan el color del modo activo (normal verde, developer cian, focus azul, relax violeta, happy amarillo); al 70 % usado pasan a azul y al 90 % a rojo, y si los creditos se agotan o GitHub deja de otorgar cuota, la vista queda en rojo. Debajo del anillo muestra la facturacion del mes en curso: `BRUTO` (costo total de los creditos usados), `DESC` (parte cubierta por los creditos incluidos en el plan) y `NETO` (lo que pagas extra, `$0.00` si estas dentro del plan). Si esa consulta falla, la vista muestra `--` y el anillo sigue funcionando. Los datos se consultan al iniciar y cada 30 minutos.
 
 HAL lee la configuracion de `%APPDATA%\HAL\copilot.json`:
 
@@ -65,7 +65,7 @@ HAL lee la configuracion de `%APPDATA%\HAL\copilot.json`:
 `refresh_minutes` es opcional (1 a 1440; por defecto 30). El archivo esta fuera del proyecto y no se publica en Git. Para generar el token:
 
 1. Abre `https://github.com/settings/tokens/new` (token clasico).
-2. Marca solo el permiso `read:user`.
+2. Marca el permiso `user` (incluye `read:user` y el acceso a facturacion de tu cuenta). Con solo `read:user` la facturacion devuelve 404 y HAL no muestra `BRUTO`, `DESC` ni `NETO`.
 3. Define una expiracion (por ejemplo 90 dias) y genera el token.
 4. Copia el valor `ghp_...` en el campo `token` de `copilot.json` y reinicia HAL.
 
@@ -213,8 +213,8 @@ taskkill /IM hal.exe /F
 
 ## Instaladores
 
-- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.9.7_x64-setup.exe`
-- MSI: `src-tauri\target\release\bundle\msi\HAL_1.9.7_x64_en-US.msi`
+- NSIS: `src-tauri\target\release\bundle\nsis\HAL_1.9.8_x64-setup.exe`
+- MSI: `src-tauri\target\release\bundle\msi\HAL_1.9.8_x64_en-US.msi`
 
 ## Desarrollo
 
@@ -247,4 +247,4 @@ MIT. Consulta [LICENSE](LICENSE).
 
 La tipografia Silkscreen incluida en `src/assets` se distribuye bajo la SIL Open Font License 1.1 (`src/assets/Silkscreen-OFL.txt`) y no queda cubierta por esta licencia.
 
-El sonido `src/assets/beeper.wav` (origen: BigSoundBank, «ALRMElec_Digital pager», ID 3513) no es de esta licencia; revisa sus condiciones de uso en su pagina de origen antes de redistribuir HAL.
+El sonido `src/assets/beeper.wav` (origen: BigSoundBank, «ALRMElec_Digital pager», ID 3513) se distribuye bajo CC0 1.0 (dominio público) según la licencia de BigSoundBank. No requiere atribución, aunque el autor agradece una mención a BigSoundBank.

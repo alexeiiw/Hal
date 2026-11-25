@@ -129,6 +129,31 @@ struct CopilotStatus {
     fetched_at: i64,
     ok: bool,
     error: Option<String>,
+    gross: f64,
+    discount: f64,
+    net: f64,
+    billing_ok: bool,
+}
+
+#[derive(Deserialize)]
+struct BillingUser {
+    login: String,
+}
+
+#[derive(Deserialize)]
+struct BillingReport {
+    #[serde(rename = "usageItems", default)]
+    items: Vec<BillingItem>,
+}
+
+#[derive(Deserialize)]
+struct BillingItem {
+    #[serde(rename = "grossAmount", default)]
+    gross: f64,
+    #[serde(rename = "discountAmount", default)]
+    discount: f64,
+    #[serde(rename = "netAmount", default)]
+    net: f64,
 }
 
 #[derive(Deserialize)]
@@ -483,7 +508,7 @@ fn is_image(path: &std::path::Path) -> bool {
 
 #[tauri::command]
 async fn weather_city(latitude: f64, longitude: f64) -> String {
-    let Ok(client) = reqwest::Client::builder().user_agent("HAL/1.9.7").build() else {
+    let Ok(client) = reqwest::Client::builder().user_agent("HAL/1.9.8").build() else {
         return String::new();
     };
     let url = format!(
@@ -1177,7 +1202,7 @@ async fn run_telegram(
     }
 
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.7")
+        .user_agent("HAL/1.9.8")
         .build()
         .expect("failed to create Telegram client");
 
@@ -1305,6 +1330,12 @@ async fn fetch_copilot(client: &reqwest::Client, token: &str) -> Result<CopilotS
         .and_then(|snapshots| snapshots.premium_interactions)
         .ok_or_else(|| "SIN CUOTA".to_string())?;
 
+    let billing = fetch_copilot_billing(client, token).await;
+    let (gross, discount, net, billing_ok) = match billing {
+        Some((gross, discount, net)) => (gross, discount, net, true),
+        None => (0.0, 0.0, 0.0, false),
+    };
+
     Ok(CopilotStatus {
         used: quota.credits_used,
         total: quota.entitlement,
@@ -1314,12 +1345,50 @@ async fn fetch_copilot(client: &reqwest::Client, token: &str) -> Result<CopilotS
         fetched_at: Utc::now().timestamp(),
         ok: true,
         error: None,
+        gross,
+        discount,
+        net,
+        billing_ok,
     })
+}
+
+async fn fetch_copilot_billing(client: &reqwest::Client, token: &str) -> Option<(f64, f64, f64)> {
+    let user = client
+        .get("https://api.github.com/user")
+        .bearer_auth(token)
+        .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2026-03-10")
+        .send()
+        .await
+        .ok()?
+        .json::<BillingUser>()
+        .await
+        .ok()?;
+
+    let response = client
+        .get(format!(
+            "https://api.github.com/users/{}/settings/billing/ai_credit/usage?product=copilot",
+            user.login
+        ))
+        .bearer_auth(token)
+        .header("Accept", "application/vnd.github+json")
+        .header("X-GitHub-Api-Version", "2026-03-10")
+        .send()
+        .await
+        .ok()?;
+    if !response.status().is_success() {
+        return None;
+    }
+
+    let report = response.json::<BillingReport>().await.ok()?;
+    Some(report.items.iter().fold((0.0, 0.0, 0.0), |sum, item| {
+        (sum.0 + item.gross, sum.1 + item.discount, sum.2 + item.net)
+    }))
 }
 
 async fn run_copilot(app: tauri::AppHandle, status: Arc<Mutex<CopilotStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.7")
+        .user_agent("HAL/1.9.8")
         .build()
         .expect("failed to create Copilot client");
 
@@ -1401,7 +1470,7 @@ async fn fetch_deepseek(
 
 async fn run_deepseek(app: tauri::AppHandle, status: Arc<Mutex<DeepSeekStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.7")
+        .user_agent("HAL/1.9.8")
         .build()
         .expect("failed to create DeepSeek client");
 
@@ -1664,7 +1733,7 @@ async fn fetch_opencode(
 
 async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.7")
+        .user_agent("HAL/1.9.8")
         .timeout(Duration::from_secs(3))
         .build()
         .expect("failed to create OpenCode client");
@@ -1700,7 +1769,7 @@ async fn run_opencode_status(app: tauri::AppHandle, status: Arc<Mutex<OpenCodeSt
 
 async fn run_bitcoin_alert(app: tauri::AppHandle, bitcoin_status: Arc<Mutex<BitcoinStatus>>) {
     let client = reqwest::Client::builder()
-        .user_agent("HAL/1.9.7")
+        .user_agent("HAL/1.9.8")
         .build()
         .expect("failed to create Bitcoin client");
     let mut was_below_threshold = false;

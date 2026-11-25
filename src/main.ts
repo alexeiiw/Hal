@@ -30,6 +30,9 @@ const netDownEl = document.querySelector<HTMLElement>("#net-down");
 const netUpEl = document.querySelector<HTMLElement>("#net-up-num");
 const copArc = document.querySelector<SVGCircleElement>("#cop-arc");
 const copUsed = document.querySelector<HTMLElement>("#cop-used");
+const billGross = document.querySelector<HTMLElement>("#bill-gross");
+const billDisc = document.querySelector<HTMLElement>("#bill-disc");
+const billNet = document.querySelector<HTMLElement>("#bill-net");
 const copTotal = document.querySelector<HTMLElement>("#cop-total");
 const dsArc = document.querySelector<SVGCircleElement>("#ds-arc");
 const dsBalance = document.querySelector<HTMLElement>("#ds-balance");
@@ -58,6 +61,10 @@ type CopilotStatus = {
   fetchedAt: number;
   ok: boolean;
   error: string | null;
+  gross: number;
+  discount: number;
+  net: number;
+  billingOk: boolean;
 };
 type DeepSeekStatus = {
   total: number;
@@ -117,7 +124,7 @@ const halSettingsKey = "hal-settings";
 const halClockResetKey = "hal-clock-once";
 const allViews: MetricView[] = ["cpu", "memory", "red", "weather", "clock", "agenda", "mail", "bitcoin", "face", "task", "photo", "copilot", "deepseek", "opencode"];
 
-if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !weatherCity || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !ramApps || !photoImg || !netLine || !netUpLine || !netArea || !netDownEl || !netUpEl || !copArc || !copUsed || !copTotal || !dsArc || !dsBalance || !ocState || !ocCount || !pagerEl || !pagerTime || !pagerDate || !agendaTime || !agendaFoot || !mailSender || !mailSubject || !mailState || agendaTitle.length !== 2 || pagerLines.length !== 3 || bars.length !== 5) {
+if (!metricOutput || !root || !wavePath || !waveTail || !weatherIcon || !weatherCity || !clockHour || !clockMinute || !gaugeArc || !gaugeValue || !ramApps || !photoImg || !netLine || !netUpLine || !netArea || !netDownEl || !netUpEl || !copArc || !copUsed || !copTotal || !dsArc || !dsBalance || !ocState || !ocCount || !pagerEl || !pagerTime || !pagerDate || !agendaTime || !agendaFoot || !mailSender || !mailSubject || !mailState || !billGross || !billDisc || !billNet || agendaTitle.length !== 2 || pagerLines.length !== 3 || bars.length !== 5) {
   throw new Error("La interfaz HAL no se pudo inicializar.");
 }
 
@@ -504,6 +511,10 @@ function updateCopilot(): void {
   copArc!.style.strokeDashoffset = `${copCircumference * (1 - ratio)}`;
   copUsed!.textContent = ok ? String(used) : "--";
   copTotal!.textContent = total > 0 ? String(total) : "--";
+  const billed = ok && copilot!.billingOk;
+  billGross!.textContent = billed ? `$${copilot!.gross.toFixed(2)}` : "--";
+  billDisc!.textContent = billed ? `$${copilot!.discount.toFixed(2)}` : "--";
+  billNet!.textContent = billed ? `$${copilot!.net.toFixed(2)}` : "--";
 }
 
 const dsCircumference = 2 * Math.PI * 42;
